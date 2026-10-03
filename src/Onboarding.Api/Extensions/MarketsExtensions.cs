@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace Atlas.Onboarding.Api.Extensions;
 
-/// <summary>Binds the "Markets" configuration (Annex B) to the domain's market catalog.</summary>
+/// <summary>Binds the "Markets" configuration (Annex B) to the domain's market.</summary>
 public static class MarketsExtensions
 {
     public static IHostApplicationBuilder AddMarkets(this IHostApplicationBuilder builder)

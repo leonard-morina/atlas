@@ -28,25 +28,3 @@ public sealed record SubmitApplicationRequest(
     string? Phone,
     IReadOnlyList<DocumentRequest>? Documents,
     bool? TermsAccepted);
-
-/// <param name="Type"><c>NATIONAL_ID</c>, or <c>PASSPORT</c> where the market accepts it (MF).</param>
-/// <param name="Value">The identifier exactly as issued. Leading zeros are significant.</param>
-/// <param name="IssuingCountry">Passport only: ISO 3166-1 alpha-3 code of the issuing state.</param>
-public sealed record IdentifierRequest(IdentifierType? Type, string? Value, string? IssuingCountry);
-
-/// <param name="Type"><c>PASSPORT</c>, <c>ID_CARD</c> or <c>SELFIE</c>.</param>
-/// <param name="Image">Base64-encoded image.</param>
-public sealed record DocumentRequest(DocumentType? Type, string? Image);
-
-public enum IdentifierType
-{
-    NationalId,
-    Passport,
-}
-
-public enum DocumentType
-{
-    Passport,
-    IdCard,
-    Selfie,
-}

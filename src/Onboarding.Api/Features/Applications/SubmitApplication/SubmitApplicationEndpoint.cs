@@ -34,44 +34,8 @@ public static class SubmitApplicationEndpoint
         ISender sender,
         CancellationToken cancellationToken)
     {
-        var result = await sender.Send(ToCommand(idempotencyKey, request), cancellationToken);
+        var result = await sender.Send(request.ToCommand(idempotencyKey), cancellationToken);
 
         return TypedResults.Created($"/applications/{result.ApplicationId}", result);
     }
-
-    // Since the validation filter has already passed, we no longer need to validate the request body
-    private static SubmitApplicationCommand ToCommand(Guid idempotencyKey, SubmitApplicationRequest request) =>
-        new(
-            idempotencyKey,
-            request.FirstName!,
-            request.LastName!,
-            request.DateOfBirth!.Value,
-            Market: request.Country!,
-            request.Nationality!,
-            new Domain.Applications.ApplicantIdentifier(
-                ToDomain(request.Identifier!.Type!.Value),
-                request.Identifier.Value!,
-                request.Identifier.IssuingCountry),
-            request.Email!,
-            request.Phone!,
-            [
-                .. request.Documents!.Select(document =>
-                    new ApplicantDocument(ToDomain(document.Type!.Value), Convert.FromBase64String(document.Image!)))
-            ]);
-
-    // The v1 contract keeps its own enums so the JSON shape and the domain can change independently.
-    private static Domain.Applications.IdentifierType ToDomain(IdentifierType type) => type switch
-    {
-        IdentifierType.NationalId => Domain.Applications.IdentifierType.NationalId,
-        IdentifierType.Passport => Domain.Applications.IdentifierType.Passport,
-        _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
-    };
-
-    private static Domain.Applications.DocumentType ToDomain(DocumentType type) => type switch
-    {
-        DocumentType.Passport => Domain.Applications.DocumentType.Passport,
-        DocumentType.IdCard => Domain.Applications.DocumentType.IdCard,
-        DocumentType.Selfie => Domain.Applications.DocumentType.Selfie,
-        _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
-    };
 }
