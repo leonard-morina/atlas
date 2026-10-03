@@ -1,3 +1,3 @@
 {
-    "appHostPath": "../src/Atlas.AppHost/Atlas.AppHost.csproj"
+    "appHostPath": "../src/AppHost/AppHost.csproj"
 }
