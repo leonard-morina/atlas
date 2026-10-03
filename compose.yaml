@@ -1,0 +1,10 @@
+# Entry point for the local infrastructure. Run from the repository root:
+#
+#   docker compose up -d
+#
+# The services themselves live in platform/docker-compose.yml; this file only
+# includes it so that the root .env is the single source of ports and passwords.
+
+include:
+  - path: platform/docker-compose.yml
+    env_file: .env
