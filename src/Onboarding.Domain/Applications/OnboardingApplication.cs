@@ -11,6 +11,7 @@ public sealed class OnboardingApplication
     private OnboardingApplication(
         Guid id,
         Guid idempotencyKey,
+        string requestFingerprint,
         string market,
         Applicant applicant,
         ApplicantIdentifier identifier,
@@ -18,6 +19,7 @@ public sealed class OnboardingApplication
     {
         Id = id;
         IdempotencyKey = idempotencyKey;
+        RequestFingerprint = requestFingerprint;
         Market = market;
         Applicant = applicant;
         Identifier = identifier;
@@ -25,10 +27,25 @@ public sealed class OnboardingApplication
         SubmittedAt = submittedAt;
     }
 
+    // Used by persistence to rebuild a stored application; application code goes through Submit.
+    private OnboardingApplication()
+    {
+        RequestFingerprint = null!;
+        Market = null!;
+        Applicant = null!;
+        Identifier = null!;
+    }
+
     public Guid Id { get; private set; }
 
     /// <summary>Sent by the app with every retry: a repeated submission is the same application.</summary>
     public Guid IdempotencyKey { get; private set; }
+
+    /// <summary>
+    /// A hash of what was submitted. A retry carries the same key and the same content; the same key with
+    /// different content is a client error, not a retry.
+    /// </summary>
+    public string RequestFingerprint { get; private set; }
 
     public string Market { get; private set; }
 
@@ -47,6 +64,7 @@ public sealed class OnboardingApplication
     /// <exception cref="ArgumentException">The identifier is not valid for the market.</exception>
     public static OnboardingApplication Submit(
         Guid idempotencyKey,
+        string requestFingerprint,
         Market market,
         Applicant applicant,
         ApplicantIdentifier identifier,
@@ -57,8 +75,15 @@ public sealed class OnboardingApplication
             throw new ArgumentException(problem, nameof(identifier));
         }
 
-        return new OnboardingApplication(Guid.NewGuid(), idempotencyKey, market.Code, applicant, identifier, submittedAt);
+        return new OnboardingApplication(
+            Guid.NewGuid(), idempotencyKey, requestFingerprint, market.Code, applicant, identifier, submittedAt);
     }
+
+    /// <summary>
+    /// A rejected applicant may apply again; any other application in a market blocks a second one for the
+    /// same identifier.
+    /// </summary>
+    public bool BlocksNewApplication => Status != ApplicationStatus.Rejected;
 
     private static string? IdentifierProblem(Market market, Applicant applicant, ApplicantIdentifier identifier) =>
         identifier.Type switch

@@ -19,6 +19,7 @@
       <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
       <ProjectReference Include="..\Onboarding.Domain\Onboarding.Domain.csproj" />
       <ProjectReference Include="..\Onboarding.Application\Onboarding.Application.csproj" />
+      <ProjectReference Include="..\Onboarding.Infrastructure\Onboarding.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>

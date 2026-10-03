@@ -1,5 +1,6 @@
 using Atlas.Onboarding.Application.Behaviors;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 namespace Atlas.Onboarding.Application;
@@ -17,6 +18,8 @@ public static class ApplicationLayerExtensions
             options.RegisterServicesFromAssemblyContaining(typeof(ApplicationLayerExtensions));
             options.AddOpenBehavior(typeof(LoggingBehavior<,>));
         });
+
+        builder.Services.TryAddSingleton(TimeProvider.System);
 
         return builder;
     }

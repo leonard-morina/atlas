@@ -17,7 +17,6 @@ public static class ApplicationsApi
 {
     public static IHostApplicationBuilder AddApplicationsApi(this IHostApplicationBuilder builder)
     {
-        builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddValidatorsFromAssemblyContaining<SubmitApplicationRequestValidator>();
 
         return builder;

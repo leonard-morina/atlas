@@ -5,7 +5,11 @@
     <Project Path="src/Onboarding.Api/Onboarding.Api.csproj" />
     <Project Path="src/Onboarding.Application/Onboarding.Application.csproj" />
     <Project Path="src/Onboarding.Domain/Onboarding.Domain.csproj" />
+    <Project Path="src/Onboarding.Infrastructure/Onboarding.Infrastructure.csproj" />
     <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Persistence/Persistence.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Onboarding.UnitTests/Onboarding.UnitTests.csproj" />

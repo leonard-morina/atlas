@@ -19,7 +19,7 @@ public sealed class OnboardingApplicationTests
     {
         var key = Guid.NewGuid();
 
-        var application = OnboardingApplication.Submit(key, MB, Ana, ValidPersonalNumber, Now);
+        var application = OnboardingApplication.Submit(key, "fingerprint", MB, Ana, ValidPersonalNumber, Now);
 
         Assert.AreNotEqual(Guid.Empty, application.Id);
         Assert.AreNotEqual(key, application.Id);
@@ -32,21 +32,21 @@ public sealed class OnboardingApplicationTests
     [TestMethod]
     public void Submit_refuses_a_national_id_that_is_invalid_for_the_market() =>
         Assert.ThrowsExactly<ArgumentException>(() => OnboardingApplication.Submit(
-            Guid.NewGuid(), MB, Ana, new ApplicantIdentifier(IdentifierType.NationalId, "0403991450016", null), Now));
+            Guid.NewGuid(), "fingerprint", MB, Ana, new ApplicantIdentifier(IdentifierType.NationalId, "0403991450016", null), Now));
 
     [TestMethod]
     public void Submit_refuses_a_passport_where_the_market_does_not_accept_one() =>
         Assert.ThrowsExactly<ArgumentException>(() => OnboardingApplication.Submit(
-            Guid.NewGuid(), MB, Ana, new ApplicantIdentifier(IdentifierType.Passport, "N1234567", "SYR"), Now));
+            Guid.NewGuid(), "fingerprint", MB, Ana, new ApplicantIdentifier(IdentifierType.Passport, "N1234567", "SYR"), Now));
 
     [TestMethod]
     public void Submit_refuses_a_passport_without_its_issuing_country() =>
         Assert.ThrowsExactly<ArgumentException>(() => OnboardingApplication.Submit(
-            Guid.NewGuid(), MF, Ana, new ApplicantIdentifier(IdentifierType.Passport, "N1234567", null), Now));
+            Guid.NewGuid(), "fingerprint", MF, Ana, new ApplicantIdentifier(IdentifierType.Passport, "N1234567", null), Now));
 
     [TestMethod]
     public void Submit_accepts_a_passport_in_MF() =>
         Assert.AreEqual(
             ApplicationStatus.Submitted,
-            OnboardingApplication.Submit(Guid.NewGuid(), MF, Ana, new ApplicantIdentifier(IdentifierType.Passport, "N1234567", "SYR"), Now).Status);
+            OnboardingApplication.Submit(Guid.NewGuid(), "fingerprint", MF, Ana, new ApplicantIdentifier(IdentifierType.Passport, "N1234567", "SYR"), Now).Status);
 }

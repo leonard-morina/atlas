@@ -21,5 +21,3 @@ public sealed record SubmitApplicationCommand(
 
 /// <summary>An identity document or selfie, already decoded from the request's base64.</summary>
 public sealed record ApplicantDocument(DocumentType Type, byte[] Content);
-
-public sealed record SubmitApplicationResult(Guid ApplicationId, string Status);
