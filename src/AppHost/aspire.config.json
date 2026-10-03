@@ -1,5 +1,5 @@
 {
   "appHost": {
-    "path": "Atlas.AppHost.csproj"
+    "path": "AppHost.csproj"
   }
 }
