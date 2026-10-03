@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace Atlas.Onboarding.Api.Features.Applications.SubmitApplication;
+namespace Atlas.Onboarding.Application.Features.Applications.SubmitApplication;
 
 public sealed class SubmitApplicationHandler : IRequestHandler<SubmitApplicationCommand, SubmitApplicationResult>
 {

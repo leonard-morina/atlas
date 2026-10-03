@@ -1,6 +1,7 @@
+using Atlas.Onboarding.Domain.Applications;
 using MediatR;
 
-namespace Atlas.Onboarding.Api.Features.Applications.SubmitApplication;
+namespace Atlas.Onboarding.Application.Features.Applications.SubmitApplication;
 
 /// <summary>
 /// Submit an onboarding application. Independent of the HTTP contract: every API version maps its request

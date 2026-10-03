@@ -1,4 +1,5 @@
 using Atlas.Onboarding.Api.Validation;
+using Atlas.Onboarding.Application.Features.Applications.SubmitApplication;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -48,9 +49,28 @@ public static class SubmitApplicationEndpoint
             request.DateOfBirth!.Value,
             Market: request.Country!,
             request.Nationality!,
-            new ApplicantIdentifier(request.Identifier!.Type!.Value, request.Identifier.Value!, request.Identifier.IssuingCountry),
+            new ApplicantIdentifier(
+                ToDomain(request.Identifier!.Type!.Value),
+                request.Identifier.Value!,
+                request.Identifier.IssuingCountry),
             request.Email!,
             request.Phone!,
             [.. request.Documents!.Select(document =>
-                new ApplicantDocument(document.Type!.Value, Convert.FromBase64String(document.Image!)))]);
+                new ApplicantDocument(ToDomain(document.Type!.Value), Convert.FromBase64String(document.Image!)))]);
+
+    // The v1 contract keeps its own enums so the JSON shape and the domain can change independently.
+    private static Domain.Applications.IdentifierType ToDomain(IdentifierType type) => type switch
+    {
+        IdentifierType.NationalId => Domain.Applications.IdentifierType.NationalId,
+        IdentifierType.Passport => Domain.Applications.IdentifierType.Passport,
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+    };
+
+    private static Domain.Applications.DocumentType ToDomain(DocumentType type) => type switch
+    {
+        DocumentType.Passport => Domain.Applications.DocumentType.Passport,
+        DocumentType.IdCard => Domain.Applications.DocumentType.IdCard,
+        DocumentType.Selfie => Domain.Applications.DocumentType.Selfie,
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+    };
 }

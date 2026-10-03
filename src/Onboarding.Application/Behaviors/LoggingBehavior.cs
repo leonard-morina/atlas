@@ -1,7 +1,8 @@
 using System.Diagnostics;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
-namespace Atlas.Onboarding.Api.Behaviors;
+namespace Atlas.Onboarding.Application.Behaviors;
 
 /// <summary>
 /// Logs every command by name and duration. Never the payload: commands carry personal data (Compliance §2).
