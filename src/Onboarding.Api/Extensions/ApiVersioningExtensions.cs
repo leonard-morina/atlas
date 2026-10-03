@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using Atlas.Onboarding.Api.OpenApi;
 
 namespace Atlas.Onboarding.Api.Extensions;
 
@@ -21,7 +22,8 @@ public static class ApiVersioningExtensions
                 options.GroupNameFormat = "'v'V";
                 options.SubstituteApiVersionInUrl = true;
             })
-            .AddOpenApi();
+            .AddOpenApi(options =>
+                options.Document.AddDocumentTransformer<RequiredPropertiesAreNotNullTransformer>());
 
         return builder;
     }

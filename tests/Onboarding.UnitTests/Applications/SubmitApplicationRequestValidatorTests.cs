@@ -1,3 +1,4 @@
+using Atlas.Onboarding.Api.Features.Applications;
 using Atlas.Onboarding.Api.Features.Applications.SubmitApplication;
 using Atlas.Onboarding.Domain.Markets;
 using Atlas.Onboarding.Domain.Markets.Identifiers;
@@ -35,6 +36,45 @@ public sealed class SubmitApplicationRequestValidatorTests
     [TestMethod]
     public void Accepts_a_valid_application() =>
         Validator.TestValidate(Valid).ShouldNotHaveAnyValidationErrors();
+
+    // The published OpenAPI contract marks every record parameter without a default value as required. If the
+    // validator accepted a missing value for one of them, the documented contract and the behaviour would differ.
+    [TestMethod]
+    public void Every_field_the_contract_marks_required_is_enforced()
+    {
+        foreach (var name in RequiredParameters<SubmitApplicationRequest>())
+        {
+            Validator.TestValidate(With(Valid, name, null)).ShouldHaveValidationErrorFor(name);
+        }
+
+        foreach (var name in RequiredParameters<IdentifierRequest>())
+        {
+            Validator.TestValidate(Valid with { Identifier = With(Valid.Identifier!, name, null) })
+                .ShouldHaveValidationErrorFor($"Identifier.{name}");
+        }
+
+        foreach (var name in RequiredParameters<DocumentRequest>())
+        {
+            Validator.TestValidate(Valid with { Documents = [With(Valid.Documents![0], name, null), Valid.Documents[1]] })
+                .ShouldHaveValidationErrorFor($"Documents[0].{name}");
+        }
+    }
+
+    private static IEnumerable<string> RequiredParameters<T>() =>
+        typeof(T).GetConstructors().Single().GetParameters()
+            .Where(parameter => !parameter.HasDefaultValue)
+            .Select(parameter => parameter.Name!);
+
+    // A copy of a positional record with one constructor argument replaced.
+    private static T With<T>(T instance, string name, object? value)
+    {
+        var constructor = typeof(T).GetConstructors().Single();
+        var arguments = constructor.GetParameters()
+            .Select(parameter => parameter.Name == name ? value : typeof(T).GetProperty(parameter.Name!)!.GetValue(instance))
+            .ToArray();
+
+        return (T)constructor.Invoke(arguments);
+    }
 
     [TestMethod]
     public void Accepts_a_passport_in_MF_for_residents_without_a_personal_number() =>
