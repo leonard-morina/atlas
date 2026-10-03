@@ -1,3 +1,4 @@
+using Atlas.Messaging;
 using Atlas.Onboarding.Application.Persistence;
 using Atlas.Onboarding.Infrastructure.Documents;
 using Atlas.Onboarding.Infrastructure.Persistence;
@@ -24,6 +25,9 @@ public static class InfrastructureLayerExtensions
 
         // Aspire's Blob Storage integration: retries, a storage health check and tracing.
         builder.AddAzureBlobServiceClient(DocumentsConnectionName);
+
+        // RabbitMQ with the outbox in this service's database.
+        builder.AddMessaging<OnboardingDbContext>();
 
         builder.Services.AddScoped<IOnboardingApplicationRepository, OnboardingApplicationRepository>();
         builder.Services.AddSingleton<IDocumentStore, BlobDocumentStore>();

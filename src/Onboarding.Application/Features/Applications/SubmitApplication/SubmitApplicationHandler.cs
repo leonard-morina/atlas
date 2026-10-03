@@ -1,7 +1,9 @@
 using System.Security.Cryptography;
 using Atlas.Onboarding.Application.Persistence;
+using Atlas.Onboarding.Contracts;
 using Atlas.Onboarding.Domain.Applications;
 using Atlas.Onboarding.Domain.Markets;
+using MassTransit;
 using MediatR;
 
 namespace Atlas.Onboarding.Application.Features.Applications.SubmitApplication;
@@ -9,6 +11,7 @@ namespace Atlas.Onboarding.Application.Features.Applications.SubmitApplication;
 public sealed class SubmitApplicationHandler(
     IOnboardingApplicationRepository applications,
     IDocumentStore documentStore,
+    IPublishEndpoint publishEndpoint,
     SupportedMarkets supportedMarkets,
     TimeProvider time) : IRequestHandler<SubmitApplicationCommand, SubmitApplicationResult>
 {
@@ -49,6 +52,10 @@ public sealed class SubmitApplicationHandler(
             documents,
             time.GetUtcNow());
 
+        // With the outbox this only adds the message to the unit of work: it is stored by the same SaveChanges as
+        // the application and sent afterwards. If the insert loses a race, the message is discarded with it.
+        await publishEndpoint.Publish(ToEvent(application), cancellationToken);
+
         if (await applications.TryAddAsync(application, cancellationToken))
         {
             return new SubmitApplicationResult.Accepted(application.Id, application.Status, Replayed: false);
@@ -71,6 +78,23 @@ public sealed class SubmitApplicationHandler(
 
         return new ApplicationDocument(
             document.Type, blobName, Convert.ToHexString(SHA256.HashData(document.Content)), document.Content.LongLength);
+    }
+
+    private static ApplicationSubmitted ToEvent(OnboardingApplication application)
+    {
+        var identityDocument = application.Documents.Single(document => document.Type != DocumentType.Selfie);
+        var selfie = application.Documents.Single(document => document.Type == DocumentType.Selfie);
+
+        return new ApplicationSubmitted(
+            application.Id,
+            application.Market,
+            application.Applicant.FirstName,
+            application.Applicant.LastName,
+            application.Applicant.DateOfBirth,
+            application.Applicant.Nationality,
+            identityDocument.Type == DocumentType.Passport ? IdentityDocumentType.Passport : IdentityDocumentType.IdCard,
+            new DocumentReference(identityDocument.BlobName, identityDocument.Sha256),
+            new DocumentReference(selfie.BlobName, selfie.Sha256));
     }
 
     private static SubmitApplicationResult Replay(OnboardingApplication earlier, string fingerprint) =>

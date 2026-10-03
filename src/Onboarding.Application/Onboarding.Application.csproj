@@ -2,9 +2,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Onboarding.Domain\Onboarding.Domain.csproj" />
+    <ProjectReference Include="..\Onboarding.Contracts\Onboarding.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="MassTransit.Abstractions" />
     <PackageReference Include="MediatR" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />

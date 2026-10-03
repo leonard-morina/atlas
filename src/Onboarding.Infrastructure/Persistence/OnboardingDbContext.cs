@@ -1,4 +1,5 @@
 using Atlas.Onboarding.Domain.Applications;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 namespace Atlas.Onboarding.Infrastructure.Persistence;
@@ -8,6 +9,11 @@ public sealed class OnboardingDbContext(DbContextOptions<OnboardingDbContext> op
 {
     public DbSet<OnboardingApplication> Applications => Set<OnboardingApplication>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(OnboardingDbContext).Assembly);
+
+        // MassTransit's outbox and inbox tables live in this database so they share its transactions.
+        modelBuilder.AddTransactionalOutboxEntities();
+    }
 }

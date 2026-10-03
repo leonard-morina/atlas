@@ -4,6 +4,7 @@
       <ProjectReference Include="..\Onboarding.Domain\Onboarding.Domain.csproj" />
       <ProjectReference Include="..\Onboarding.Application\Onboarding.Application.csproj" />
       <ProjectReference Include="..\BuildingBlocks\Persistence\Persistence.csproj" />
+      <ProjectReference Include="..\BuildingBlocks\Messaging\Messaging.csproj" />
     </ItemGroup>
 
     <ItemGroup>
