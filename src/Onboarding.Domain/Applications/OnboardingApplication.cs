@@ -8,6 +8,8 @@ namespace Atlas.Onboarding.Domain.Applications;
 /// </summary>
 public sealed class OnboardingApplication
 {
+    private readonly List<ApplicationDocument> _documents = [];
+
     private OnboardingApplication(
         Guid id,
         Guid idempotencyKey,
@@ -15,6 +17,7 @@ public sealed class OnboardingApplication
         string market,
         Applicant applicant,
         ApplicantIdentifier identifier,
+        IEnumerable<ApplicationDocument> documents,
         DateTimeOffset submittedAt)
     {
         Id = id;
@@ -23,6 +26,7 @@ public sealed class OnboardingApplication
         Market = market;
         Applicant = applicant;
         Identifier = identifier;
+        _documents.AddRange(documents);
         Status = ApplicationStatus.Submitted;
         SubmittedAt = submittedAt;
     }
@@ -53,6 +57,9 @@ public sealed class OnboardingApplication
 
     public ApplicantIdentifier Identifier { get; private set; }
 
+    /// <summary>Exactly one identity document (passport or ID card) and one selfie.</summary>
+    public IReadOnlyList<ApplicationDocument> Documents => _documents;
+
     public ApplicationStatus Status { get; private set; }
 
     public DateTimeOffset SubmittedAt { get; private set; }
@@ -61,22 +68,34 @@ public sealed class OnboardingApplication
     /// The only way an application comes into existence. The market rules are enforced here as well as at
     /// the HTTP edge, so no entry point can create an application that breaks them.
     /// </summary>
-    /// <exception cref="ArgumentException">The identifier is not valid for the market.</exception>
+    /// <param name="id">
+    /// Chosen by the caller because the documents are stored under it before the application itself is saved.
+    /// </param>
+    /// <exception cref="ArgumentException">The identifier is not valid for the market, or the documents are incomplete.</exception>
     public static OnboardingApplication Submit(
+        Guid id,
         Guid idempotencyKey,
         string requestFingerprint,
         Market market,
         Applicant applicant,
         ApplicantIdentifier identifier,
+        IReadOnlyCollection<ApplicationDocument> documents,
         DateTimeOffset submittedAt)
     {
+        ArgumentOutOfRangeException.ThrowIfEqual(id, Guid.Empty);
+
         if (IdentifierProblem(market, applicant, identifier) is { } problem)
         {
             throw new ArgumentException(problem, nameof(identifier));
         }
 
+        if (!HasOneIdentityDocumentAndOneSelfie(documents))
+        {
+            throw new ArgumentException("Exactly one identity document and one selfie are required.", nameof(documents));
+        }
+
         return new OnboardingApplication(
-            Guid.NewGuid(), idempotencyKey, requestFingerprint, market.Code, applicant, identifier, submittedAt);
+            id, idempotencyKey, requestFingerprint, market.Code, applicant, identifier, documents, submittedAt);
     }
 
     /// <summary>
@@ -84,6 +103,11 @@ public sealed class OnboardingApplication
     /// same identifier.
     /// </summary>
     public bool BlocksNewApplication => Status != ApplicationStatus.Rejected;
+
+    private static bool HasOneIdentityDocumentAndOneSelfie(IReadOnlyCollection<ApplicationDocument> documents) =>
+        documents.Count == 2
+        && documents.Count(document => document.Type == DocumentType.Selfie) == 1
+        && documents.Count(document => document.Type is DocumentType.Passport or DocumentType.IdCard) == 1;
 
     private static string? IdentifierProblem(Market market, Applicant applicant, ApplicantIdentifier identifier) =>
         identifier.Type switch

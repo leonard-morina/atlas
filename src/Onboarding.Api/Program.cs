@@ -20,6 +20,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     await app.MigrateDatabaseAsync<OnboardingDbContext>();
+    await app.CreateDocumentContainerAsync();
 }
 
 app.UseHttpApiConventions();

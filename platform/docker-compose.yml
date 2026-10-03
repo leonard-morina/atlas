@@ -58,7 +58,18 @@ services:
       retries: 12
       start_period: 20s
 
+  # Blob storage for identity documents and selfies (Azure Blob Storage in production).
+  # --skipApiVersionCheck: current Azure SDKs ask for newer storage API versions than Azurite reports.
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --location /data --skipApiVersionCheck
+    ports:
+      - "${AZURITE_BLOB_PORT:-10000}:10000"
+    volumes:
+      - azurite-data:/data
+
 volumes:
   sql-data:
   seq-data:
   rabbitmq-data:
+  azurite-data:

@@ -23,12 +23,19 @@ builder.Configuration["ConnectionStrings:rabbitmq"] =
 
 builder.Configuration["ConnectionStrings:seq"] = $"http://localhost:{env["SEQ_PORT"]}";
 
+// Azurite's fixed development account (public, documented by Microsoft; it only exists in the emulator).
+builder.Configuration["ConnectionStrings:documents"] =
+    "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;" +
+    "AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;" +
+    $"BlobEndpoint=http://127.0.0.1:{env["AZURITE_BLOB_PORT"]}/devstoreaccount1;";
+
 var onboardingDb = builder.AddConnectionString("onboarding-db");
 var rabbitmq = builder.AddConnectionString("rabbitmq");
 var seq = builder.AddConnectionString("seq");
+var documents = builder.AddConnectionString("documents");
 
 var onboardingApi = builder.AddProject<Projects.Onboarding_Api>("onboarding-api")
-    .WithReference(onboardingDb).WithReference(rabbitmq).WithReference(seq)
+    .WithReference(onboardingDb).WithReference(documents).WithReference(rabbitmq).WithReference(seq)
     .WithForwardedHeaders()
     .WithHttpHealthCheck("/health");
 

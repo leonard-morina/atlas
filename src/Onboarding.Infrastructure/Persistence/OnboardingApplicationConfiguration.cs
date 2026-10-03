@@ -39,6 +39,18 @@ internal sealed class OnboardingApplicationConfiguration : IEntityTypeConfigurat
                 .HasMaxLength(3).IsUnicode(false);
         });
 
+        // Where each image is stored and its hash; the bytes themselves are in blob storage.
+        builder.OwnsMany(application => application.Documents, document =>
+        {
+            document.ToTable("ApplicationDocuments");
+            document.WithOwner().HasForeignKey("ApplicationId");
+            document.HasKey("ApplicationId", nameof(ApplicationDocument.Type));
+            document.Property(d => d.Type).HasConversion<string>().HasMaxLength(20).IsUnicode(false);
+            document.Property(d => d.BlobName).HasMaxLength(100).IsUnicode(false);
+            document.Property(d => d.Sha256).HasMaxLength(64).IsUnicode(false);
+        });
+        builder.Navigation(application => application.Documents).UsePropertyAccessMode(PropertyAccessMode.Field);
+
         // The "submitted twice" guarantee. A unique index rather than a check in code: with several replicas,
         // two identical requests can both pass a check before either is stored.
         builder.HasIndex(application => application.IdempotencyKey)

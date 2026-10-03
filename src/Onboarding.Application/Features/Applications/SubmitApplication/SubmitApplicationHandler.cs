@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Atlas.Onboarding.Application.Persistence;
 using Atlas.Onboarding.Domain.Applications;
 using Atlas.Onboarding.Domain.Markets;
@@ -7,6 +8,7 @@ namespace Atlas.Onboarding.Application.Features.Applications.SubmitApplication;
 
 public sealed class SubmitApplicationHandler(
     IOnboardingApplicationRepository applications,
+    IDocumentStore documentStore,
     SupportedMarkets supportedMarkets,
     TimeProvider time) : IRequestHandler<SubmitApplicationCommand, SubmitApplicationResult>
 {
@@ -30,12 +32,21 @@ public sealed class SubmitApplicationHandler(
             throw new InvalidOperationException($"Market {command.Market} reached the handler but is not supported.");
         }
 
+        // Images first, then the row that refers to them. They cannot share a transaction, and this is the safe
+        // order: if saving fails, an unreferenced image is left (wasted storage, removed by a cleanup policy);
+        // the other order could save an application whose images do not exist.
+        var applicationId = Guid.NewGuid();
+        var documents = await Task.WhenAll(command.Documents.Select(document =>
+            StoreAsync(market.Code, applicationId, document, cancellationToken)));
+
         var application = OnboardingApplication.Submit(
+            applicationId,
             command.IdempotencyKey,
             fingerprint,
             market,
             new Applicant(command.FirstName, command.LastName, command.DateOfBirth, command.Nationality, command.Email, command.Phone),
             command.Identifier,
+            documents,
             time.GetUtcNow());
 
         if (await applications.TryAddAsync(application, cancellationToken))
@@ -48,6 +59,18 @@ public sealed class SubmitApplicationHandler(
         return await applications.FindByIdempotencyKeyAsync(command.IdempotencyKey, cancellationToken) is { } winner
             ? Replay(winner, fingerprint)
             : new SubmitApplicationResult.ApplicantAlreadyApplied();
+    }
+
+    private async Task<ApplicationDocument> StoreAsync(
+        string market,
+        Guid applicationId,
+        ApplicantDocument document,
+        CancellationToken cancellationToken)
+    {
+        var blobName = await documentStore.StoreAsync(market, applicationId, document.Type, document.Content, cancellationToken);
+
+        return new ApplicationDocument(
+            document.Type, blobName, Convert.ToHexString(SHA256.HashData(document.Content)), document.Content.LongLength);
     }
 
     private static SubmitApplicationResult Replay(OnboardingApplication earlier, string fingerprint) =>

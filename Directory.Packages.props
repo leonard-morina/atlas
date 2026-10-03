@@ -6,6 +6,7 @@
   <ItemGroup>
     <PackageVersion Include="Asp.Versioning.Http" Version="10.2.3" />
     <PackageVersion Include="Asp.Versioning.OpenApi" Version="10.2.3" />
+    <PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="13.6.0" />
     <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.6.0" />
     <PackageVersion Include="Aspire.Seq" Version="13.6.0" />
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
