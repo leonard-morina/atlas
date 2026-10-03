@@ -34,6 +34,10 @@ var rabbitmq = builder.AddConnectionString("rabbitmq");
 var seq = builder.AddConnectionString("seq");
 var documents = builder.AddConnectionString("documents");
 
+var stubs = builder.AddProject<Projects.Stubs>("stubs")
+    .WithReference(seq)
+    .WithHttpHealthCheck("/health");
+
 var onboardingApi = builder.AddProject<Projects.Onboarding_Api>("onboarding-api")
     .WithReference(onboardingDb).WithReference(documents).WithReference(rabbitmq).WithReference(seq)
     .WithForwardedHeaders()

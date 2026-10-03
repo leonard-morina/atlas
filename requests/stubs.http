@@ -1,0 +1,82 @@
+# Provider stand-ins (src/Stubs). Normally only the Verification service calls these; this file shows how each
+# provider scenario is triggered, without changing any code.
+#
+#   World-Check: a marker word in the name   Match | Pep | Slow | Down        (anything else: CLEAR)
+#   IDNow:       a marker inside the document image (the base64 below decodes to it)
+#                IDNOW:INVALID | IDNOW:INCONCLUSIVE | IDNOW:NOFACE | IDNOW:SLOW | IDNOW:DOWN   (anything else: VALID)
+#
+# "Slow" waits Stubs:SlowResponseDelay (appsettings.json, default 20 seconds).
+
+@stubs = http://localhost:5090
+
+### IDNow: valid document, face matches
+POST {{stubs}}/idnow/v1/identifications
+Content-Type: application/json
+
+{ "documentType": "PASSPORT", "documentImage": "aGVsbG8=", "selfieImage": "aGVsbG8=" }
+
+### IDNow: document INVALID (image contains IDNOW:INVALID)
+POST {{stubs}}/idnow/v1/identifications
+Content-Type: application/json
+
+{ "documentType": "PASSPORT", "documentImage": "SUROT1c6SU5WQUxJRA==", "selfieImage": "aGVsbG8=" }
+
+### IDNow: document INCONCLUSIVE (IDNOW:INCONCLUSIVE)
+POST {{stubs}}/idnow/v1/identifications
+Content-Type: application/json
+
+{ "documentType": "ID_CARD", "documentImage": "SUROT1c6SU5DT05DTFVTSVZF", "selfieImage": "aGVsbG8=" }
+
+### IDNow: face does not match (IDNOW:NOFACE)
+POST {{stubs}}/idnow/v1/identifications
+Content-Type: application/json
+
+{ "documentType": "PASSPORT", "documentImage": "SUROT1c6Tk9GQUNF", "selfieImage": "aGVsbG8=" }
+
+### IDNow: slow (IDNOW:SLOW)
+POST {{stubs}}/idnow/v1/identifications
+Content-Type: application/json
+
+{ "documentType": "PASSPORT", "documentImage": "SUROT1c6U0xPVw==", "selfieImage": "aGVsbG8=" }
+
+### IDNow: unavailable, 503 (IDNOW:DOWN)
+POST {{stubs}}/idnow/v1/identifications
+Content-Type: application/json
+
+{ "documentType": "PASSPORT", "documentImage": "SUROT1c6RE9XTg==", "selfieImage": "aGVsbG8=" }
+
+### World-Check: clear
+POST {{stubs}}/worldcheck/v2/screen
+Content-Type: application/json
+
+{ "name": "Ana Petrova", "dateOfBirth": "1991-03-04", "nationality": "MKD" }
+
+### World-Check: possible sanctions match (name contains "Match")
+POST {{stubs}}/worldcheck/v2/screen
+Content-Type: application/json
+
+{ "name": "Ana Match", "dateOfBirth": "1991-03-04", "nationality": "MKD" }
+
+### World-Check: possible PEP match (name contains "Pep")
+POST {{stubs}}/worldcheck/v2/screen
+Content-Type: application/json
+
+{ "name": "Ana Pep", "dateOfBirth": "1991-03-04", "nationality": "MKD" }
+
+### World-Check: slow (name contains "Slow")
+POST {{stubs}}/worldcheck/v2/screen
+Content-Type: application/json
+
+{ "name": "Ana Slow", "dateOfBirth": "1991-03-04", "nationality": "MKD" }
+
+### World-Check: unavailable, 503 (name contains "Down")
+POST {{stubs}}/worldcheck/v2/screen
+Content-Type: application/json
+
+{ "name": "Ana Down", "dateOfBirth": "1991-03-04", "nationality": "MKD" }
+
+### Calls received so far (side effects: e.g. IDNow called exactly once per application)
+GET {{stubs}}/_stub/calls
+
+### Reset the call log
+DELETE {{stubs}}/_stub/calls
