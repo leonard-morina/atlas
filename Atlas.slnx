@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/AppHost/AppHost.csproj" />
     <Project Path="src/Onboarding.Api/Onboarding.Api.csproj" />
+    <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/tests/">
   </Folder>

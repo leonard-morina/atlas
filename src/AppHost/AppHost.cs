@@ -11,7 +11,7 @@ builder.Configuration["ConnectionStrings:sql"] = new DbConnectionStringBuilder
     ["User Id"] = "sa",
     ["Password"] = env["SQL_PASSWORD"],
     // The SQL Server container uses a self-signed certificate.
-    ["TrustServerCertificate"] = "True",
+    ["TrustServerCertificate"] = "True"
 }.ConnectionString;
 
 builder.Configuration["ConnectionStrings:rabbitmq"] =
