@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -81,6 +82,14 @@ public static class Extensions
         if (useOtlpExporter)
         {
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
+        }
+
+        // Seq (platform/docker-compose.yml) receives logs and traces alongside the Aspire dashboard.
+        // Its health check is off on purpose: a logging outage must not make a service report itself
+        // unhealthy and be taken out of rotation.
+        if (!string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("seq")))
+        {
+            builder.AddSeqEndpoint("seq", settings => settings.DisableHealthChecks = true);
         }
 
         return builder;

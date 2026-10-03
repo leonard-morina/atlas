@@ -18,11 +18,14 @@ builder.Configuration["ConnectionStrings:rabbitmq"] =
     $"amqp://{Uri.EscapeDataString(env["RABBITMQ_USER"])}:{Uri.EscapeDataString(env["RABBITMQ_PASSWORD"])}" +
     $"@localhost:{env["RABBITMQ_PORT"]}";
 
+builder.Configuration["ConnectionStrings:seq"] = $"http://localhost:{env["SEQ_PORT"]}";
+
 var sql = builder.AddConnectionString("sql");
 var rabbitmq = builder.AddConnectionString("rabbitmq");
+var seq = builder.AddConnectionString("seq");
 
 builder.AddProject<Projects.Onboarding_Api>("onboarding-api")
-    .WithReference(sql).WithReference(rabbitmq)
+    .WithReference(sql).WithReference(rabbitmq).WithReference(seq)
     .WithHttpHealthCheck("/health");
 
 builder.Build().Run();

@@ -33,6 +33,9 @@ services:
     image: datalust/seq:latest
     environment:
       ACCEPT_EULA: "Y"
+      # Current Seq versions refuse to start without an admin password or this opt-out.
+      # Local development only: the provided setup documents Seq as having no credentials.
+      SEQ_FIRSTRUN_NOAUTHENTICATION: "true"
     ports:
       - "${SEQ_PORT:-5341}:80"
     volumes:
