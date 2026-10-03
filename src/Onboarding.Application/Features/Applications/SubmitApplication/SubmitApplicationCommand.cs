@@ -19,8 +19,6 @@ public sealed record SubmitApplicationCommand(
     string Phone,
     IReadOnlyList<ApplicantDocument> Documents) : IRequest<SubmitApplicationResult>;
 
-public sealed record ApplicantIdentifier(IdentifierType Type, string Value, string? IssuingCountry);
-
 /// <summary>An identity document or selfie, already decoded from the request's base64.</summary>
 public sealed record ApplicantDocument(DocumentType Type, byte[] Content);
 

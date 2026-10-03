@@ -36,11 +36,10 @@ public static class SubmitApplicationEndpoint
     {
         var result = await sender.Send(ToCommand(idempotencyKey, request), cancellationToken);
 
-        // The public path: mobile reaches this service through the gateway's unversioned routes.
         return TypedResults.Created($"/applications/{result.ApplicationId}", result);
     }
 
-    // The validation filter has already run, so the required values are present and well-formed.
+    // Since the validation filter has already passed, we no longer need to validate the request body
     private static SubmitApplicationCommand ToCommand(Guid idempotencyKey, SubmitApplicationRequest request) =>
         new(
             idempotencyKey,
@@ -49,14 +48,16 @@ public static class SubmitApplicationEndpoint
             request.DateOfBirth!.Value,
             Market: request.Country!,
             request.Nationality!,
-            new ApplicantIdentifier(
+            new Domain.Applications.ApplicantIdentifier(
                 ToDomain(request.Identifier!.Type!.Value),
                 request.Identifier.Value!,
                 request.Identifier.IssuingCountry),
             request.Email!,
             request.Phone!,
-            [.. request.Documents!.Select(document =>
-                new ApplicantDocument(ToDomain(document.Type!.Value), Convert.FromBase64String(document.Image!)))]);
+            [
+                .. request.Documents!.Select(document =>
+                    new ApplicantDocument(ToDomain(document.Type!.Value), Convert.FromBase64String(document.Image!)))
+            ]);
 
     // The v1 contract keeps its own enums so the JSON shape and the domain can change independently.
     private static Domain.Applications.IdentifierType ToDomain(IdentifierType type) => type switch
