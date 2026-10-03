@@ -12,6 +12,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Onboarding.Api\Onboarding.Api.csproj" />
+      <ProjectReference Include="..\Gateway\Gateway.csproj" />
     </ItemGroup>
 
 </Project>

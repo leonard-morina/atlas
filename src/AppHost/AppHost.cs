@@ -10,7 +10,6 @@ builder.Configuration["ConnectionStrings:sql"] = new DbConnectionStringBuilder
     ["Server"] = $"localhost,{env["SQL_PORT"]}",
     ["User Id"] = "sa",
     ["Password"] = env["SQL_PASSWORD"],
-    // The SQL Server container uses a self-signed certificate.
     ["TrustServerCertificate"] = "True"
 }.ConnectionString;
 
@@ -24,8 +23,16 @@ var sql = builder.AddConnectionString("sql");
 var rabbitmq = builder.AddConnectionString("rabbitmq");
 var seq = builder.AddConnectionString("seq");
 
-builder.AddProject<Projects.Onboarding_Api>("onboarding-api")
+var onboardingApi = builder.AddProject<Projects.Onboarding_Api>("onboarding-api")
     .WithReference(sql).WithReference(rabbitmq).WithReference(seq)
+    .WithForwardedHeaders()
     .WithHttpHealthCheck("/health");
+
+// This is the Yarp reverse proxy, its the only reachable service, and it maps the versioned API from onboarding to the unversioned one
+builder.AddProject<Projects.Gateway>("gateway")
+    .WithReference(onboardingApi).WaitFor(onboardingApi)
+    .WithReference(seq)
+    .WithHttpHealthCheck("/health")
+    .WithExternalHttpEndpoints();
 
 builder.Build().Run();
