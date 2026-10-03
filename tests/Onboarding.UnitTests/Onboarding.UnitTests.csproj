@@ -1,0 +1,13 @@
+<Project Sdk="MSTest.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Onboarding.Api\Onboarding.Api.csproj" />
+    <ProjectReference Include="..\..\src\Onboarding.Domain\Onboarding.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

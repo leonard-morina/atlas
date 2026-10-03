@@ -1,3 +1,6 @@
+using Atlas.Onboarding.Api.Features.Applications.SubmitApplication;
+using FluentValidation;
+
 namespace Atlas.Onboarding.Api.Features.Applications;
 
 /// <summary>
@@ -12,6 +15,14 @@ namespace Atlas.Onboarding.Api.Features.Applications;
 /// </remarks>
 public static class ApplicationsApi
 {
+    public static IHostApplicationBuilder AddApplicationsApi(this IHostApplicationBuilder builder)
+    {
+        builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.AddValidatorsFromAssemblyContaining<SubmitApplicationRequestValidator>();
+
+        return builder;
+    }
+
     public static IEndpointRouteBuilder MapApplicationsApi(this IEndpointRouteBuilder endpoints)
     {
         var applications = endpoints.NewVersionedApi("Applications")
