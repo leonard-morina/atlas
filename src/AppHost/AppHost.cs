@@ -12,7 +12,7 @@ const string seqConnectionStringName = "seq";
 const string documentsConnectionStringName = "documents";
 
 builder.Configuration[$"ConnectionStrings:{onboardingDbConnectionStringName}"] = SqlDatabase("atlas_onboarding");
-builder.Configuration["$ConnectionStrings:{verificationDbConnectionStringName}"] = SqlDatabase("atlas_verification");
+builder.Configuration[$"ConnectionStrings:{verificationDbConnectionStringName}"] = SqlDatabase("atlas_verification");
 builder.Configuration[$"ConnectionStrings:{rabbitMqConnectionStringName}"] =
     $"amqp://{Uri.EscapeDataString(env["RABBITMQ_USER"])}:{Uri.EscapeDataString(env["RABBITMQ_PASSWORD"])}" +
     $"@localhost:{env["RABBITMQ_PORT"]}";
