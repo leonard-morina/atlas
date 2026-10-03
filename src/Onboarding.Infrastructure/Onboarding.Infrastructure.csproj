@@ -5,10 +5,10 @@
       <ProjectReference Include="..\Onboarding.Application\Onboarding.Application.csproj" />
       <ProjectReference Include="..\BuildingBlocks\Persistence\Persistence.csproj" />
       <ProjectReference Include="..\BuildingBlocks\Messaging\Messaging.csproj" />
+      <ProjectReference Include="..\BuildingBlocks\Documents\Documents.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Aspire.Azure.Storage.Blobs" />
       <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

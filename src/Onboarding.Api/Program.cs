@@ -1,3 +1,4 @@
+using Atlas.Documents;
 using Atlas.Onboarding.Api.Extensions;
 using Atlas.Onboarding.Api.Features.Applications;
 using Atlas.Onboarding.Application;
@@ -20,6 +21,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     await app.MigrateDatabaseAsync<OnboardingDbContext>();
+    // If we were to be in prod, we wouldn't need to create the docs container like this, but since we're running the azurite-storage behind a container we create this here
     await app.CreateDocumentContainerAsync();
 }
 

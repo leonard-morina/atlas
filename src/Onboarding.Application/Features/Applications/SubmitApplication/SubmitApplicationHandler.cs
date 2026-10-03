@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Atlas.Onboarding.Application.Persistence;
 using Atlas.Onboarding.Contracts;
 using Atlas.Onboarding.Domain.Applications;
@@ -40,7 +39,7 @@ public sealed class SubmitApplicationHandler(
         // the other order could save an application whose images do not exist.
         var applicationId = Guid.NewGuid();
         var documents = await Task.WhenAll(command.Documents.Select(document =>
-            StoreAsync(market.Code, applicationId, document, cancellationToken)));
+            documentStore.StoreAsync(market.Code, applicationId, document.Type, document.Content, cancellationToken)));
 
         var application = OnboardingApplication.Submit(
             applicationId,
@@ -66,18 +65,6 @@ public sealed class SubmitApplicationHandler(
         return await applications.FindByIdempotencyKeyAsync(command.IdempotencyKey, cancellationToken) is { } winner
             ? Replay(winner, fingerprint)
             : new SubmitApplicationResult.ApplicantAlreadyApplied();
-    }
-
-    private async Task<ApplicationDocument> StoreAsync(
-        string market,
-        Guid applicationId,
-        ApplicantDocument document,
-        CancellationToken cancellationToken)
-    {
-        var blobName = await documentStore.StoreAsync(market, applicationId, document.Type, document.Content, cancellationToken);
-
-        return new ApplicationDocument(
-            document.Type, blobName, Convert.ToHexString(SHA256.HashData(document.Content)), document.Content.LongLength);
     }
 
     private static ApplicationSubmitted ToEvent(OnboardingApplication application)

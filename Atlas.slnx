@@ -16,6 +16,7 @@
     <Project Path="src/Verification.Worker/Verification.Worker.csproj" />
   </Folder>
   <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Documents/Documents.csproj" />
     <Project Path="src/BuildingBlocks/Messaging/Messaging.csproj" />
     <Project Path="src/BuildingBlocks/Persistence/Persistence.csproj" />
   </Folder>
