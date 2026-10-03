@@ -12,9 +12,9 @@ public static class HttpApiExtensions
         // header) keeps its message: it only describes the request, so it is safe and useful to return.
         builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
         {
-            if (context.Exception is BadHttpRequestException badRequest)
+            if (context.Exception is BadHttpRequestException or NotImplementedException)
             {
-                context.ProblemDetails.Detail = badRequest.Message;
+                context.ProblemDetails.Detail = context.Exception.Message;
             }
         });
 
@@ -31,8 +31,12 @@ public static class HttpApiExtensions
         // Binding failures are thrown as BadHttpRequestException; answer with their status (400), not 500.
         app.UseExceptionHandler(new ExceptionHandlerOptions
         {
-            StatusCodeSelector = exception =>
-                exception is BadHttpRequestException badRequest ? badRequest.StatusCode : StatusCodes.Status500InternalServerError,
+            StatusCodeSelector = exception => exception switch
+            {
+                BadHttpRequestException badRequest => badRequest.StatusCode,
+                NotImplementedException => StatusCodes.Status501NotImplemented,
+                _ => StatusCodes.Status500InternalServerError,
+            },
         });
         app.UseStatusCodePages();
 

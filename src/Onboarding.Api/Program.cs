@@ -7,6 +7,7 @@ builder.AddServiceDefaults();
 builder.AddHttpApiConventions();
 builder.AddVersionedApi();
 builder.AddMarkets();
+builder.AddMediatorPipeline();
 builder.AddApplicationsApi();
 
 var app = builder.Build();
