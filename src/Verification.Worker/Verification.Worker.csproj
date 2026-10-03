@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Verification.Application\Verification.Application.csproj" />
+    <ProjectReference Include="..\Verification.Infrastructure\Verification.Infrastructure.csproj" />
+    <ProjectReference Include="..\Verification.Contracts\Verification.Contracts.csproj" />
+    <ProjectReference Include="..\Onboarding.Contracts\Onboarding.Contracts.csproj" />
+    <ProjectReference Include="..\ServiceDefaults\ServiceDefaults.csproj" />
+    <ProjectReference Include="..\BuildingBlocks\Persistence\Persistence.csproj" />
+    <ProjectReference Include="..\BuildingBlocks\Messaging\Messaging.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

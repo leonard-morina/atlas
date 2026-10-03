@@ -9,6 +9,11 @@
     <Project Path="src/Onboarding.Infrastructure/Onboarding.Infrastructure.csproj" />
     <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
     <Project Path="src/Stubs/Stubs.csproj" />
+    <Project Path="src/Verification.Application/Verification.Application.csproj" />
+    <Project Path="src/Verification.Contracts/Verification.Contracts.csproj" />
+    <Project Path="src/Verification.Domain/Verification.Domain.csproj" />
+    <Project Path="src/Verification.Infrastructure/Verification.Infrastructure.csproj" />
+    <Project Path="src/Verification.Worker/Verification.Worker.csproj" />
   </Folder>
   <Folder Name="/src/BuildingBlocks/">
     <Project Path="src/BuildingBlocks/Messaging/Messaging.csproj" />
@@ -16,6 +21,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Onboarding.UnitTests/Onboarding.UnitTests.csproj" />
+    <Project Path="tests/Verification.UnitTests/Verification.UnitTests.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />

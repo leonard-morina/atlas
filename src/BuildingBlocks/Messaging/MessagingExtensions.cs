@@ -38,7 +38,17 @@ public static class MessagingExtensions
             });
 
             bus.AddConfigureEndpointsCallback((context, _, endpoint) =>
-                endpoint.UseEntityFrameworkOutbox<TDbContext>(context));
+            {
+                // Transient failures (a provider briefly down or too slow, a database blip) get a few spaced
+                // attempts; after that the message moves to the endpoint's _error queue for operations to look at.
+                // Longer delayed redelivery needs a message scheduler: RabbitMQ only with a plugin, Azure Service
+                // Bus natively (production).
+                endpoint.UseMessageRetry(retry => retry.Intervals(
+                    TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(30)));
+
+                // Inside the retry, so every attempt is its own transaction.
+                endpoint.UseEntityFrameworkOutbox<TDbContext>(context);
+            });
 
             configure?.Invoke(bus);
 
