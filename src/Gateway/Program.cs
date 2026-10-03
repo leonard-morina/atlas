@@ -7,6 +7,7 @@ builder.AddReverseProxyRoutes();
 
 var app = builder.Build();
 
+
 app.MapDefaultEndpoints();
 app.MapReverseProxy();
 
