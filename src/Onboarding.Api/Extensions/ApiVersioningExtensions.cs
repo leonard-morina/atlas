@@ -31,6 +31,17 @@ public static class ApiVersioningExtensions
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi().WithDocumentPerVersion();
+
+            // Swagger UI at /swagger, with one entry per API version in its document picker.
+            app.UseSwaggerUI(options =>
+            {
+                foreach (var description in app.DescribeApiVersions())
+                {
+                    options.SwaggerEndpoint(
+                        $"/openapi/{description.GroupName}.json",
+                        description.GroupName.ToUpperInvariant());
+                }
+            });
         }
 
         return app;
