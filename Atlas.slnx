@@ -27,7 +27,7 @@
   <Folder Name="/Solution Items/">
     <File Path="docs/decisions.md" />
     <File Path=".editorconfig" />
-    <File Path="requests/applications.http" />
+    <File Path="requests/atlas.http" />
     <File Path="global.json" />
     <File Path=".env" />
     <File Path=".env.example" />

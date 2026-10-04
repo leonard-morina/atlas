@@ -1,0 +1,258 @@
+#   Start the infrastructure:  docker compose up -d          
+#   Start the services:        dotnet run --project src/AppHost
+#
+# Sections
+#   1. Public API, through the gateway (what the mobile client should call)
+#   2. The three required cases: slow provider, possible match, submitted twice
+#   3. Other verification outcomes
+#   4. Validation errors
+#   5. Provider stand-ins (src/Stubs) directly
+#   6. The Onboarding service directly, bypassing the gateway (debugging)
+#
+# Running a scenario again: each applicant can have only one open application per market, so a second run of the
+# same request answers 409. Change the identifier (any valid one, see docs) or reset the Onboarding database.
+# Images are tiny base64 placeholders. In section 3 the document image carries an IDNow scenario marker.
+
+@gateway = http://localhost:5070
+@onboarding = http://localhost:5162
+@stubs = http://localhost:5090
+
+# Paste an applicationId from a submission response here to use the GET requests.
+@applicationId = 00000000-0000-0000-0000-000000000000
+
+
+### 1.1 Submit an application (MA, national ID): normally 201 APPROVED within a second
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 6a1f5c2e-0b7d-4c1a-9f3e-2d8b4a6c0e11
+
+{
+  "firstName": "Clean", "lastName": "Applicant", "dateOfBirth": "1993-04-28",
+  "country": "MA", "nationality": "MKD",
+  "identifier": { "type": "NATIONAL_ID", "value": "2804993312001" },
+  "email": "clean@example.com", "phone": "+38970123456",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+### 1.2 Submit with a passport: MF residents without a Personal Number
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 6a1f5c2e-0b7d-4c1a-9f3e-2d8b4a6c0e12
+
+{
+  "firstName": "Omar", "lastName": "Haddad", "dateOfBirth": "1988-11-20",
+  "country": "MF", "nationality": "SYR",
+  "identifier": { "type": "PASSPORT", "value": "N7654321", "issuingCountry": "SYR" },
+  "email": "omar@example.com", "phone": "+38970123457",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+### 1.3 Where an application stands (set @applicationId above)
+GET {{gateway}}/applications/{{applicationId}}
+
+
+### 2.1 Slow provider: last name "Slow" makes World-Check take 20 seconds.
+#     Expect 202 PROCESSING after about 10 seconds; GET it (1.3) a little later for APPROVED.
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 7b2e6d3f-1c8e-4d2b-8a4f-3e9c5b7d1f21
+
+{
+  "firstName": "Sam", "lastName": "Slow", "dateOfBirth": "1989-02-14",
+  "country": "MA", "nationality": "MKD",
+  "identifier": { "type": "NATIONAL_ID", "value": "1402989312000" },
+  "email": "slow@example.com", "phone": "+38970123456",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+### 2.2 Possible match: last name "Match" makes World-Check report a possible sanctions match.
+#     Expect 202 REFERRED: a compliance officer decides; it is never approved or rejected automatically.
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 7b2e6d3f-1c8e-4d2b-8a4f-3e9c5b7d1f22
+
+{
+  "firstName": "Ana", "lastName": "Match", "dateOfBirth": "1979-09-09",
+  "country": "MA", "nationality": "MKD",
+  "identifier": { "type": "NATIONAL_ID", "value": "0909979312006" },
+  "email": "match@example.com", "phone": "+38970123456",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+### 2.3 Submitted twice: run this request twice. The second answer is the same application, with the header
+#     Idempotent-Replayed: true. Then compare the provider call log (5.6): IDNow was called once.
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 7b2e6d3f-1c8e-4d2b-8a4f-3e9c5b7d1f23
+
+{
+  "firstName": "Tia", "lastName": "Twice", "dateOfBirth": "1995-11-21",
+  "country": "MA", "nationality": "MKD",
+  "identifier": { "type": "NATIONAL_ID", "value": "2111995312003" },
+  "email": "twice@example.com", "phone": "+38970123456",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+### 2.4 Same Idempotency-Key as 2.3 but different content (phone): 422, the key belongs to another application
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 7b2e6d3f-1c8e-4d2b-8a4f-3e9c5b7d1f23
+
+{
+  "firstName": "Tia", "lastName": "Twice", "dateOfBirth": "1995-11-21",
+  "country": "MA", "nationality": "MKD",
+  "identifier": { "type": "NATIONAL_ID", "value": "2111995312003" },
+  "email": "twice@example.com", "phone": "+38970999999",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+### 2.5 Same applicant as 2.3 with a new Idempotency-Key: 409, an application is already in progress
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 7b2e6d3f-1c8e-4d2b-8a4f-3e9c5b7d1f24
+
+{
+  "firstName": "Tia", "lastName": "Twice", "dateOfBirth": "1995-11-21",
+  "country": "MA", "nationality": "MKD",
+  "identifier": { "type": "NATIONAL_ID", "value": "2111995312003" },
+  "email": "twice@example.com", "phone": "+38970123456",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+
+### 3.1 Invalid document: the image contains IDNOW:INVALID. Expect 201 REJECTED.
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 8c3f7e4a-2d9f-4e3c-9b5a-4f0d6c8e2a31
+
+{
+  "firstName": "Ina", "lastName": "Valid", "dateOfBirth": "1990-06-03",
+  "country": "MA", "nationality": "MKD",
+  "identifier": { "type": "NATIONAL_ID", "value": "0306990312003" },
+  "email": "invalid@example.com", "phone": "+38970123456",
+  "documents": [ { "type": "PASSPORT", "image": "SUROT1c6SU5WQUxJRA==" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+### 3.2 Face does not match: the image contains IDNOW:NOFACE. Expect 201 REJECTED.
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 8c3f7e4a-2d9f-4e3c-9b5a-4f0d6c8e2a32
+
+{
+  "firstName": "Nora", "lastName": "Face", "dateOfBirth": "1987-01-17",
+  "country": "MA", "nationality": "MKD",
+  "identifier": { "type": "NATIONAL_ID", "value": "1701987312000" },
+  "email": "noface@example.com", "phone": "+38970123456",
+  "documents": [ { "type": "PASSPORT", "image": "SUROT1c6Tk9GQUNF" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+
+### 4.1 422: the ticket's own sample identifier fails its check digit (CDS-ID-04 §3.1)
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 9d4a8f5b-3e0a-4f4d-8c6b-5a1e7d9f3b41
+
+{
+  "firstName": "Ana", "lastName": "Petrova", "dateOfBirth": "1991-03-04",
+  "country": "MB", "nationality": "MKD",
+  "identifier": { "type": "NATIONAL_ID", "value": "0403991450016" },
+  "email": "ana@example.com", "phone": "+38970123456",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+### 4.2 422: passport in a market that does not accept one, two selfies, terms not accepted
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 9d4a8f5b-3e0a-4f4d-8c6b-5a1e7d9f3b42
+
+{
+  "firstName": "Ana", "lastName": "Petrova", "dateOfBirth": "1991-03-04",
+  "country": "MB", "nationality": "MKD",
+  "identifier": { "type": "PASSPORT", "value": "N1234567", "issuingCountry": "MKD" },
+  "email": "ana@example.com", "phone": "+38970123456",
+  "documents": [ { "type": "SELFIE", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": false
+}
+
+### 4.3 400: an unknown value names the field and what it accepts
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 9d4a8f5b-3e0a-4f4d-8c6b-5a1e7d9f3b43
+
+{
+  "firstName": "Ana", "lastName": "Petrova", "dateOfBirth": "1991-03-04",
+  "country": "MB", "nationality": "MKD",
+  "identifier": { "type": "PASSPOR", "value": "N1234567" },
+  "email": "ana@example.com", "phone": "+38970123456",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+### 4.4 400: Idempotency-Key header missing
+POST {{gateway}}/applications
+Content-Type: application/json
+
+{ "firstName": "Ana" }
+
+### 4.5 404: versioned paths are not exposed by the gateway
+POST {{gateway}}/v1/applications
+Content-Type: application/json
+Idempotency-Key: 9d4a8f5b-3e0a-4f4d-8c6b-5a1e7d9f3b45
+
+{}
+
+
+### 5.1 IDNow stand-in: valid document, face matches
+#     Scenario markers inside the document image: IDNOW:INVALID | IDNOW:INCONCLUSIVE | IDNOW:NOFACE | IDNOW:SLOW | IDNOW:DOWN
+POST {{stubs}}/idnow/v1/identifications
+Content-Type: application/json
+
+{ "documentType": "PASSPORT", "documentImage": "aGVsbG8=", "selfieImage": "aGVsbG8=" }
+
+### 5.2 IDNow stand-in: inconclusive (IDNOW:INCONCLUSIVE)
+POST {{stubs}}/idnow/v1/identifications
+Content-Type: application/json
+
+{ "documentType": "ID_CARD", "documentImage": "SUROT1c6SU5DT05DTFVTSVZF", "selfieImage": "aGVsbG8=" }
+
+### 5.3 IDNow stand-in: unavailable, 503 (IDNOW:DOWN)
+POST {{stubs}}/idnow/v1/identifications
+Content-Type: application/json
+
+{ "documentType": "PASSPORT", "documentImage": "SUROT1c6RE9XTg==", "selfieImage": "aGVsbG8=" }
+
+### 5.4 World-Check stand-in: clear
+#     Scenario markers in the name: Match | Pep | Slow | Down
+POST {{stubs}}/worldcheck/v2/screen
+Content-Type: application/json
+
+{ "name": "Ana Petrova", "dateOfBirth": "1991-03-04", "nationality": "MKD" }
+
+### 5.5 World-Check stand-in: possible PEP match (name contains "Pep")
+POST {{stubs}}/worldcheck/v2/screen
+Content-Type: application/json
+
+{ "name": "Ana Pep", "dateOfBirth": "1991-03-04", "nationality": "MKD" }
+
+### 5.6 Calls the stand-ins received (side effects: for example IDNow called exactly once per application)
+GET {{stubs}}/_stub/calls
+
+### 5.7 Reset the call log
+DELETE {{stubs}}/_stub/calls
+
+
+### 6.1 The Onboarding service directly: versioned path, no gateway
+GET {{onboarding}}/v1/applications/{{applicationId}}
+
+### 6.2 OpenAPI document (Development only; Swagger UI at {{onboarding}}/swagger)
+GET {{onboarding}}/openapi/v1.json
