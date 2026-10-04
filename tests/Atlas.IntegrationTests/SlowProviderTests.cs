@@ -15,7 +15,7 @@ public sealed class SlowProviderTests
     [TestMethod]
     public async Task A_slow_provider_gets_PROCESSING_within_the_budget_and_the_decision_arrives_later()
     {
-        // "Slow": the World-Check stand-in answers after 20 seconds; the submission waits 10 (Onboarding:DecisionWait).
+        // "Slow": the World-Check stand-in answers after 8 seconds; the submission waits 5 (both set in AtlasApp).
         var started = Stopwatch.StartNew();
         var response = await Gateway.SubmitAsync(Applicants.Application("Slow"), Guid.NewGuid());
         var answeredAfter = started.Elapsed;
@@ -24,7 +24,7 @@ public sealed class SlowProviderTests
         Assert.AreEqual(HttpStatusCode.Accepted, response.StatusCode);
         Assert.AreEqual("PROCESSING", submission!.Status);
         Assert.AreEqual($"/applications/{submission.ApplicationId}", response.Headers.Location?.OriginalString);
-        Assert.IsLessThan(TimeSpan.FromSeconds(15), answeredAfter, "The submission must not wait for the slow provider.");
+        Assert.IsLessThan(TimeSpan.FromSeconds(8), answeredAfter, "The submission must not wait for the slow provider.");
 
         // An approval moves on to account opening, so either status means the decision was made.
         var decided = await Gateway.WaitForStatusAsync(

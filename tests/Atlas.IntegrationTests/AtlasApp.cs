@@ -50,6 +50,11 @@ public static class AtlasApp
         builder.CreateResourceBuilder<ProjectResource>("gateway")
             .WithEnvironment("Gateway__RateLimiting__Enabled", "false");
 
+        // A slow provider on a faster clock, in the same order: the submission stops waiting (5 s) before World-Check
+        // answers (8 s). 5 s, not less: every other test expects its submission decided within that wait.
+        builder.CreateResourceBuilder<ProjectResource>("onboarding-api")
+            .WithEnvironment("Onboarding__DecisionWait__Budget", "00:00:05");
+
         // Account opening on a faster clock, in the same order as in production: our OpenAccount call gives up (3 s),
         // core banking opens the account anyway (6 s), and its lookup replica shows it later still (3 s after that).
         // The end-of-day window is off, or the tests waiting for an account would fail between 22:00 and 06:00.
@@ -61,6 +66,7 @@ public static class AtlasApp
             .WithEnvironment("Accounts__Opening__BusyRetryDelay", "00:00:01")
             .WithEnvironment("Accounts__Opening__ObserveEndOfDayWindow", "false");
         builder.CreateResourceBuilder<ProjectResource>("stubs")
+            .WithEnvironment("Stubs__SlowResponseDelay", "00:00:08")
             .WithEnvironment("Stubs__CoreBanking__OpenAccountDelay", "00:00:01")
             .WithEnvironment("Stubs__CoreBanking__TimeoutScenarioDelay", "00:00:06")
             .WithEnvironment("Stubs__CoreBanking__ReplicaDelay", "00:00:03")
