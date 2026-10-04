@@ -29,18 +29,21 @@ public static class SubmitApplicationEndpoint
     /// is recognised instead of creating a second application.
     /// </param>
     /// <param name="request">The application.</param>
-    /// <param name="sender">MediatR.</param>
+    /// <param name="scopes">Creates the submission's own unit of work.</param>
+    /// <param name="decisionWait">Waits briefly for verification to decide.</param>
     /// <param name="httpContext">The current request.</param>
     /// <param name="cancellationToken">Request aborted.</param>
     private static async Task<IResult> HandleV1(
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         SubmitApplicationRequest request,
-        ISender sender,
+        IServiceScopeFactory scopes,
+        DecisionWait decisionWait,
         HttpContext httpContext,
         CancellationToken cancellationToken) =>
-        await sender.Send(request.ToCommand(idempotencyKey), cancellationToken) switch
+        await SubmitAsync(scopes, request.ToCommand(idempotencyKey), cancellationToken) switch
         {
-            SubmitApplicationResult.Accepted accepted => Accepted(accepted, httpContext),
+            SubmitApplicationResult.Accepted accepted =>
+                await AcceptedAsync(accepted, decisionWait, httpContext, cancellationToken),
 
             SubmitApplicationResult.IdempotencyKeyReused => TypedResults.Problem(
                 statusCode: StatusCodes.Status422UnprocessableEntity,
@@ -55,15 +58,33 @@ public static class SubmitApplicationEndpoint
             _ => throw new UnreachableException(),
         };
 
+    // The submission is its own unit of work, ended before the wait for a decision begins. The outbox hands
+    // ApplicationSubmitted to the broker when that unit of work is disposed; waiting inside it (the request's scope)
+    // would hold back the very message verification needs, for the whole wait.
+    private static async Task<SubmitApplicationResult> SubmitAsync(
+        IServiceScopeFactory scopes,
+        SubmitApplicationCommand command,
+        CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<ISender>().Send(command, cancellationToken);
+    }
+
     // 201 with a decision, 202 while the decision is pending. A retry gets the original answer, marked as such.
-    private static IResult Accepted(SubmitApplicationResult.Accepted accepted, HttpContext httpContext)
+    private static async Task<IResult> AcceptedAsync(
+        SubmitApplicationResult.Accepted accepted,
+        DecisionWait decisionWait,
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
     {
         if (accepted.Replayed)
         {
             httpContext.Response.Headers["Idempotent-Replayed"] = "true";
         }
 
-        var response = new SubmitApplicationResponse(accepted.ApplicationId, accepted.Status.ToContract());
+        // Usually verification decides within the wait; when it does not, the app checks back later.
+        var state = await decisionWait.ForDecisionAsync(accepted.ApplicationId, cancellationToken);
+        var response = new SubmitApplicationResponse(accepted.ApplicationId, (state?.Status ?? accepted.Status).ToContract());
 
         // The public path: mobile reaches this service through the gateway's unversioned routes.
         var location = $"/applications/{accepted.ApplicationId}";

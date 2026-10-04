@@ -1,5 +1,4 @@
 using Atlas.Documents;
-using Atlas.Messaging;
 using Atlas.Onboarding.Application.Persistence;
 using Atlas.Onboarding.Infrastructure.Documents;
 using Atlas.Onboarding.Infrastructure.Persistence;
@@ -22,9 +21,6 @@ public static class InfrastructureLayerExtensions
 
         // Blob storage for the submitted images (shared building block: container, hash, integrity check).
         builder.AddDocumentStorage();
-
-        // RabbitMQ with the outbox in this service's database.
-        builder.AddMessaging<OnboardingDbContext>();
 
         builder.Services.AddScoped<IOnboardingApplicationRepository, OnboardingApplicationRepository>();
         builder.Services.AddSingleton<IDocumentStore, BlobDocumentStore>();

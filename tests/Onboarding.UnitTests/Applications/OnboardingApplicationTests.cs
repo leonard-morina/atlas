@@ -69,6 +69,53 @@ public sealed class OnboardingApplicationTests
             OnboardingApplication.Submit(Guid.NewGuid(), Guid.NewGuid(), "fingerprint", MB, Ana, ValidPersonalNumber, documents, Now));
     }
 
+    [TestMethod]
+    [DataRow(VerificationVerdict.Approved, ApplicationStatus.Approved)]
+    [DataRow(VerificationVerdict.Rejected, ApplicationStatus.Rejected)]
+    [DataRow(VerificationVerdict.Referred, ApplicationStatus.Referred)]
+    public void RecordVerification_moves_a_submitted_application_to_the_verdict(VerificationVerdict verdict, ApplicationStatus expected)
+    {
+        var application = Submit(MB, ValidPersonalNumber);
+
+        application.RecordVerification(verdict, MB, Now.AddSeconds(2));
+
+        Assert.AreEqual(expected, application.Status);
+        Assert.AreEqual(Now.AddSeconds(2), application.DecidedAt);
+    }
+
+    // Annex B: in MD remote identification covers the application only; activation needs a branch visit.
+    [TestMethod]
+    public void RecordVerification_approval_in_a_branch_activation_market_awaits_the_branch_visit()
+    {
+        var md = new Market("MD", AcceptsPassport: false, ActivationMode.InBranch, new PersonalNumberValidator());
+        var application = Submit(md, ValidPersonalNumber);
+
+        application.RecordVerification(VerificationVerdict.Approved, md, Now);
+
+        Assert.AreEqual(ApplicationStatus.AwaitingBranchVisit, application.Status);
+    }
+
+    [TestMethod]
+    public void RecordVerification_of_the_same_verdict_again_changes_nothing()
+    {
+        var application = Submit(MB, ValidPersonalNumber);
+        application.RecordVerification(VerificationVerdict.Approved, MB, Now);
+
+        application.RecordVerification(VerificationVerdict.Approved, MB, Now.AddMinutes(5));
+
+        Assert.AreEqual(ApplicationStatus.Approved, application.Status);
+        Assert.AreEqual(Now, application.DecidedAt);
+    }
+
+    [TestMethod]
+    public void RecordVerification_refuses_a_different_verdict_once_decided()
+    {
+        var application = Submit(MB, ValidPersonalNumber);
+        application.RecordVerification(VerificationVerdict.Referred, MB, Now);
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => application.RecordVerification(VerificationVerdict.Approved, MB, Now));
+    }
+
     private static OnboardingApplication Submit(Market market, ApplicantIdentifier identifier) =>
         OnboardingApplication.Submit(Guid.NewGuid(), Guid.NewGuid(), "fingerprint", market, Ana, identifier, Documents, Now);
 }

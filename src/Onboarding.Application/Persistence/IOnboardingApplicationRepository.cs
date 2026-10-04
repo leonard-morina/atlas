@@ -5,7 +5,11 @@ namespace Atlas.Onboarding.Application.Persistence;
 /// <summary>Stored onboarding applications. Implemented by Infrastructure.</summary>
 public interface IOnboardingApplicationRepository
 {
+    /// <summary>Read only: for answering questions about an application.</summary>
     Task<OnboardingApplication?> FindAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>Tracked: for changing an application, followed by <see cref="SaveChangesAsync"/>.</summary>
+    Task<OnboardingApplication?> FindForUpdateAsync(Guid id, CancellationToken cancellationToken);
 
     Task<OnboardingApplication?> FindByIdempotencyKeyAsync(Guid idempotencyKey, CancellationToken cancellationToken);
 
@@ -18,4 +22,7 @@ public interface IOnboardingApplicationRepository
     /// insert cannot see a request still in flight on another replica.
     /// </summary>
     Task<bool> TryAddAsync(OnboardingApplication application, CancellationToken cancellationToken);
+
+    /// <summary>Saves changes to applications loaded for update, with any message published in the same unit of work.</summary>
+    Task SaveChangesAsync(CancellationToken cancellationToken);
 }

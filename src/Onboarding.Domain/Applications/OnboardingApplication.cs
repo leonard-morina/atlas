@@ -64,6 +64,9 @@ public sealed class OnboardingApplication
 
     public DateTimeOffset SubmittedAt { get; private set; }
 
+    /// <summary>When verification decided; <c>null</c> while it is still running.</summary>
+    public DateTimeOffset? DecidedAt { get; private set; }
+
     /// <summary>
     /// The only way an application comes into existence. The market rules are enforced here as well as at
     /// the HTTP edge, so no entry point can create an application that breaks them.
@@ -103,6 +106,41 @@ public sealed class OnboardingApplication
     /// same identifier.
     /// </summary>
     public bool BlocksNewApplication => Status != ApplicationStatus.Rejected;
+
+    /// <summary>
+    /// Records the verdict of identity verification and sanctions screening. The same verdict delivered again changes
+    /// nothing; a different verdict for an application already decided is refused: one application, one verification.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The application was already decided differently.</exception>
+    public void RecordVerification(VerificationVerdict verdict, Market market, DateTimeOffset decidedAt)
+    {
+        if (market.Code != Market)
+        {
+            throw new ArgumentException($"Application {Id} is in market {Market}, not {market.Code}.", nameof(market));
+        }
+
+        var status = verdict switch
+        {
+            VerificationVerdict.Approved when market.Activation == ActivationMode.InBranch => ApplicationStatus.AwaitingBranchVisit,
+            VerificationVerdict.Approved => ApplicationStatus.Approved,
+            VerificationVerdict.Rejected => ApplicationStatus.Rejected,
+            VerificationVerdict.Referred => ApplicationStatus.Referred,
+            _ => throw new ArgumentOutOfRangeException(nameof(verdict), verdict, null),
+        };
+
+        if (DecidedAt is not null)
+        {
+            if (status == Status)
+            {
+                return;
+            }
+
+            throw new InvalidOperationException($"Application {Id} was already decided as {Status}; refusing {status}.");
+        }
+
+        Status = status;
+        DecidedAt = decidedAt;
+    }
 
     private static bool HasOneIdentityDocumentAndOneSelfie(IReadOnlyCollection<ApplicationDocument> documents) =>
         documents.Count == 2

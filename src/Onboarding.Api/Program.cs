@@ -1,4 +1,6 @@
 using Atlas.Documents;
+using Atlas.Messaging;
+using Atlas.Onboarding.Api.Consumers;
 using Atlas.Onboarding.Api.Extensions;
 using Atlas.Onboarding.Api.Features.Applications;
 using Atlas.Onboarding.Application;
@@ -14,6 +16,10 @@ builder.AddVersionedApi();
 builder.AddMarkets();
 builder.AddApplicationLayer();
 builder.AddInfrastructureLayer();
+builder.AddMessaging<OnboardingDbContext>(bus =>
+{
+    bus.AddConsumer<VerificationCompletedConsumer>();
+});
 builder.AddApplicationsApi();
 
 var app = builder.Build();

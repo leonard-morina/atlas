@@ -27,3 +27,13 @@ there exist from the outside, so versioned paths, health checks and OpenAPI docu
 (request size limits for the document images, rate limiting) belong in one place. YARP runs as a normal
 .NET project with `dotnet run`; Nginx/Envoy would need images outside the allowed list, and in Azure the
 AKS ingress or API Management could take over this role.
+
+## A verdict for a market that is no longer configured
+
+**Decision.** If Verification's verdict arrives for an application whose market has since been removed from the
+`Markets` configuration (a deployment in between), Onboarding refuses to record it. The message is retried and then
+lands in the error queue, where a person decides what happens to that application.
+
+**Honest note.** This is a business decision, not a technical one, and the requirements do not answer it. I chose the
+conservative option: an application is never quietly approved, rejected or dropped under rules that no longer apply.
+It is in the open questions for Product and Compliance.

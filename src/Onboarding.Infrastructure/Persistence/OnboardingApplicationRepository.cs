@@ -10,6 +10,11 @@ internal sealed class OnboardingApplicationRepository(OnboardingDbContext db) : 
     public Task<OnboardingApplication?> FindAsync(Guid id, CancellationToken cancellationToken) =>
         db.Applications.AsNoTracking().SingleOrDefaultAsync(application => application.Id == id, cancellationToken);
 
+    public Task<OnboardingApplication?> FindForUpdateAsync(Guid id, CancellationToken cancellationToken) =>
+        db.Applications.SingleOrDefaultAsync(application => application.Id == id, cancellationToken);
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken) => db.SaveChangesAsync(cancellationToken);
+
     public Task<OnboardingApplication?> FindByIdempotencyKeyAsync(Guid idempotencyKey, CancellationToken cancellationToken) =>
         db.Applications.AsNoTracking()
             .SingleOrDefaultAsync(application => application.IdempotencyKey == idempotencyKey, cancellationToken);

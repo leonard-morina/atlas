@@ -1,3 +1,4 @@
+using Atlas.Onboarding.Api.Features.Applications.GetApplication;
 using Atlas.Onboarding.Api.Features.Applications.SubmitApplication;
 using FluentValidation;
 
@@ -18,6 +19,8 @@ public static class ApplicationsApi
     public static IHostApplicationBuilder AddApplicationsApi(this IHostApplicationBuilder builder)
     {
         builder.Services.AddValidatorsFromAssemblyContaining<SubmitApplicationRequestValidator>();
+        builder.Services.Configure<DecisionWaitOptions>(builder.Configuration.GetSection("Onboarding:DecisionWait"));
+        builder.Services.AddScoped<DecisionWait>();
 
         return builder;
     }
@@ -29,6 +32,7 @@ public static class ApplicationsApi
             .HasApiVersion(1);
 
         applications.MapSubmitApplication();
+        applications.MapGetApplication();
 
         return endpoints;
     }

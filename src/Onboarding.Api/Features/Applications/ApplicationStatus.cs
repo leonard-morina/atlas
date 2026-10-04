@@ -12,6 +12,9 @@ public enum ApplicationStatus
 
     /// <summary>A compliance officer is reviewing the application; this can take up to 48 hours.</summary>
     Referred,
+
+    /// <summary>Approved; the customer must visit a branch to sign before the account is activated (MD).</summary>
+    AwaitingBranchVisit,
 }
 
 public static class ApplicationStatusMapping
@@ -22,10 +25,11 @@ public static class ApplicationStatusMapping
         Domain.Applications.ApplicationStatus.Approved => ApplicationStatus.Approved,
         Domain.Applications.ApplicationStatus.Rejected => ApplicationStatus.Rejected,
         Domain.Applications.ApplicationStatus.Referred => ApplicationStatus.Referred,
+        Domain.Applications.ApplicationStatus.AwaitingBranchVisit => ApplicationStatus.AwaitingBranchVisit,
         _ => throw new ArgumentOutOfRangeException(nameof(status), status, null),
     };
 
     /// <summary>Whether the customer has a decision. Without one, mobile checks back later.</summary>
     public static bool IsFinal(this ApplicationStatus status) =>
-        status is ApplicationStatus.Approved or ApplicationStatus.Rejected;
+        status is ApplicationStatus.Approved or ApplicationStatus.Rejected or ApplicationStatus.AwaitingBranchVisit;
 }
