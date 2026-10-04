@@ -11,6 +11,7 @@ const string accountsDbConnectionStringName = "accounts-db";
 const string rabbitMqConnectionStringName = "rabbitmq";
 const string seqConnectionStringName = "seq";
 const string documentsConnectionStringName = "documents";
+const string redisConnectionStringName = "redis";
 
 builder.Configuration[$"ConnectionStrings:{onboardingDbConnectionStringName}"] = SqlDatabase("atlas_onboarding");
 builder.Configuration[$"ConnectionStrings:{verificationDbConnectionStringName}"] = SqlDatabase("atlas_verification");
@@ -19,6 +20,7 @@ builder.Configuration[$"ConnectionStrings:{rabbitMqConnectionStringName}"] =
     $"amqp://{Uri.EscapeDataString(env["RABBITMQ_USER"])}:{Uri.EscapeDataString(env["RABBITMQ_PASSWORD"])}" +
     $"@localhost:{env["RABBITMQ_PORT"]}";
 builder.Configuration[$"ConnectionStrings:{seqConnectionStringName}"] = $"http://localhost:{env["SEQ_PORT"]}";
+builder.Configuration[$"ConnectionStrings:{redisConnectionStringName}"] = $"localhost:{env["REDIS_PORT"]}";
 // Azurite's fixed development account (public, documented by Microsoft; it only exists in the emulator).
 builder.Configuration[$"ConnectionStrings:documents"] =
     "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;" +
@@ -31,6 +33,7 @@ var accountsDb = builder.AddConnectionString(accountsDbConnectionStringName);
 var rabbitmq = builder.AddConnectionString(rabbitMqConnectionStringName);
 var seq = builder.AddConnectionString(seqConnectionStringName);
 var documents = builder.AddConnectionString(documentsConnectionStringName);
+var redis = builder.AddConnectionString(redisConnectionStringName);
 
 var stubs = builder.AddProject<Projects.Stubs>("stubs")
     .WithReference(seq)

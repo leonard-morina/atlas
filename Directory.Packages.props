@@ -9,6 +9,7 @@
     <PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="13.6.0" />
     <PackageVersion Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.6.0" />
     <PackageVersion Include="Aspire.Seq" Version="13.6.0" />
+    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.6.0" />
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageVersion Include="MassTransit.Abstractions" Version="8.5.11" />
