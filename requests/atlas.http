@@ -10,6 +10,7 @@
 #   6. The Onboarding service directly, bypassing the gateway (debugging)
 #   7. Account opening: approved applications through core banking (the stand-in)
 #   8. Rate limiting at the gateway
+#   9. Several copies of each service
 #
 # Running a scenario again: each applicant can have only one open application per market, so a second run of the
 # same request answers 409. Change the identifier (any valid one, see docs) or reset the Onboarding database.
@@ -278,7 +279,7 @@ Idempotency-Key: 8c3f7e4a-2d9b-4e3c-9b5a-4f0d6c8e2a71
   "termsAccepted": true
 }
 
-# 7.2 OpenAccount outlives the 20-second timeout but does open the account. Accounts never calls it again: it looks the
+### 7.2 OpenAccount outlives the 20-second timeout but does open the account. Accounts never calls it again: it looks the
 #     account up every 15 seconds until the replica shows it (about 80 seconds in), then ACCOUNT_OPENED. One account.
 ### 7.2 Timeout, reconciled by lookup
 POST {{gateway}}/applications
@@ -322,7 +323,7 @@ Idempotency-Key: 8c3f7e4a-2d9b-4e3c-9b5a-4f0d6c8e2a74
   "termsAccepted": true
 }
 
-# 7.5 Outside the window core banking still answers EOD_IN_PROGRESS for this marker; Accounts trusts the refusal and
+### 7.5 Outside the window core banking still answers EOD_IN_PROGRESS for this marker; Accounts trusts the refusal and
 #     asks again every minute. Inside the window (22:00-06:00 market time) no call is made until 06:00.
 ### 7.5 EOD_IN_PROGRESS: deferred
 POST {{gateway}}/applications
@@ -338,7 +339,7 @@ Idempotency-Key: 8c3f7e4a-2d9b-4e3c-9b5a-4f0d6c8e2a75
   "termsAccepted": true
 }
 
-# 7.6 Passport customers cannot be looked up (CBS-4471): an unanswered OpenAccount goes straight to operations.
+### 7.6 Passport customers cannot be looked up (CBS-4471): an unanswered OpenAccount goes straight to operations.
 ### 7.6 MF passport, timeout: escalated, never opened twice
 POST {{gateway}}/applications
 Content-Type: application/json
@@ -385,7 +386,7 @@ SOAPAction: "urn:cbs:accounts:v3/FindCustomerAccounts"
 </soap:Envelope>
 
 
-# Section 8. Submissions are limited per client address: 10 per minute (Gateway:RateLimiting in src/Gateway/appsettings.json).
+### Section 8. Submissions are limited per client address: 10 per minute (Gateway:RateLimiting in src/Gateway/appsettings.json).
 # Run 8.1 eleven times within a minute: the first ten reach Onboarding and fail validation (the body is empty), the eleventh is refused
 # before it reaches Onboarding. Every request counts, valid or not. GET requests are not limited.
 
@@ -399,3 +400,16 @@ Idempotency-Key: 5e7c2a1b-8d4f-4b3a-9c6e-1f0a2b3c4d81
 ### 8.2 The counter in Redis (from a terminal):
 #     docker exec atlas-redis-1 redis-cli --scan --pattern 'atlas:gateway:ratelimit:*'
 #     Turn the limit off for a run: Gateway__RateLimiting__Enabled=false dotnet run --project src/AppHost
+
+
+# Section 9. Several copies of each service (the stand-ins stay single: they keep their state in memory).
+#     dotnet run --project src/AppHost -- --Atlas:Replicas=3
+# Then submit several applications (1.1, 7.x; at most 10 a minute from one address, section 8) and look at:
+#   - the dashboard: three copies of onboarding-api, verification-worker and accounts-worker;
+#   - Seq, grouped by @Resource.service.instance.id: the copies share the messages;
+#   - submissions still answer within about 100 ms: the decision may be recorded by one API copy while another holds
+#     the request, and the broadcast (ApplicationDecided) wakes whichever holds it;
+#   - 9.1: never more than 2 core banking calls in flight per market, however many Accounts workers claim.
+
+### 9.1 Core banking stand-in: peakInFlight stays at 2 per market with three Accounts workers
+GET {{stubs}}/_stub/corebanking

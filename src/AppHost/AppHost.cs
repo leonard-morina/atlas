@@ -7,6 +7,11 @@ var env = DotEnv.Load(builder.AppHostDirectory);
 
 var instance = AtlasInstance.From(builder.Configuration["Atlas:Instance"]);
 
+// How many copies of each service run (Atlas:Replicas, default 1), to see them share the work: verdicts recorded by one
+// API instance waking a submission held by another, the core banking limit holding across Accounts workers, migrations
+// started by several instances at once. The stand-ins stay single: they keep their state in memory.
+var replicas = int.TryParse(builder.Configuration["Atlas:Replicas"], out var count) && count > 1 ? count : 1;
+
 const string onboardingDbConnectionStringName = "onboarding-db";
 const string verificationDbConnectionStringName = "verification-db";
 const string accountsDbConnectionStringName = "accounts-db";
@@ -67,12 +72,14 @@ var onboardingApi = builder.AddProject<Projects.Onboarding_Api>("onboarding-api"
     .WithReference(onboardingDb).WithReference(documents).WithReference(rabbitmq).WithReference(seq)
     .WithForwardedHeaders()
     .WithInstance(instance)
+    .WithReplicas(replicas)
     .WithHttpHealthCheck("/health");
 
 builder.AddProject<Projects.Verification_Worker>("verification-worker")
     .WithReference(verificationDb).WithReference(documents).WithReference(rabbitmq).WithReference(seq)
     .WithReference(stubs)
     .WithInstance(instance)
+    .WithReplicas(replicas)
     .WithHttpHealthCheck("/health");
 
 // Opens the accounts of approved applications in core banking (the stand-in in stubs locally).
@@ -80,6 +87,7 @@ builder.AddProject<Projects.Accounts_Worker>("accounts-worker")
     .WithReference(accountsDb).WithReference(rabbitmq).WithReference(seq)
     .WithReference(stubs)
     .WithInstance(instance)
+    .WithReplicas(replicas)
     .WithHttpHealthCheck("/health");
 
 // This is the Yarp reverse proxy, its the only reachable service, and it maps the versioned API from onboarding to the unversioned one
