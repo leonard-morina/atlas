@@ -10,7 +10,8 @@ public sealed class DecisionWaitOptions
     /// <summary>How long a submission waits for verification before answering 202 PROCESSING.</summary>
     public TimeSpan Budget { get; init; } = TimeSpan.FromSeconds(10);
 
-    public TimeSpan PollInterval { get; init; } = TimeSpan.FromMilliseconds(250);
+    /// <summary>Each poll reads four columns of one row, so a short interval costs little and answers sooner.</summary>
+    public TimeSpan PollInterval { get; init; } = TimeSpan.FromMilliseconds(100);
 }
 
 /// <summary>

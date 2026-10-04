@@ -7,8 +7,12 @@ namespace Atlas.Onboarding.Infrastructure.Persistence;
 
 internal sealed class OnboardingApplicationRepository(OnboardingDbContext db) : IOnboardingApplicationRepository
 {
-    public Task<OnboardingApplication?> FindAsync(Guid id, CancellationToken cancellationToken) =>
-        db.Applications.AsNoTracking().SingleOrDefaultAsync(application => application.Id == id, cancellationToken);
+    public Task<ApplicationStatusSnapshot?> FindStatusAsync(Guid id, CancellationToken cancellationToken) =>
+        db.Applications.AsNoTracking()
+            .Where(application => application.Id == id)
+            .Select(application => new ApplicationStatusSnapshot(
+                application.Id, application.Status, application.SubmittedAt, application.DecidedAt))
+            .SingleOrDefaultAsync(cancellationToken);
 
     public Task<OnboardingApplication?> FindForUpdateAsync(Guid id, CancellationToken cancellationToken) =>
         db.Applications.SingleOrDefaultAsync(application => application.Id == id, cancellationToken);

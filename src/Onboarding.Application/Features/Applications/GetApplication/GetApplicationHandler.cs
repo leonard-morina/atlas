@@ -7,7 +7,7 @@ public sealed class GetApplicationHandler(IOnboardingApplicationRepository appli
     : IRequestHandler<GetApplicationQuery, ApplicationState?>
 {
     public async Task<ApplicationState?> Handle(GetApplicationQuery query, CancellationToken cancellationToken) =>
-        await applications.FindAsync(query.ApplicationId, cancellationToken) is { } application
-            ? new ApplicationState(application.Id, application.Status, application.SubmittedAt, application.DecidedAt)
+        await applications.FindStatusAsync(query.ApplicationId, cancellationToken) is { } snapshot
+            ? new ApplicationState(snapshot.ApplicationId, snapshot.Status, snapshot.SubmittedAt, snapshot.DecidedAt)
             : null;
 }

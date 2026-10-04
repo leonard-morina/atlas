@@ -1,32 +1,36 @@
 using System.Diagnostics;
+using Atlas.Onboarding.Application.Abstractions;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Atlas.Onboarding.Application.Behaviors;
 
 /// <summary>
-/// Logs every command by name and duration. Never the payload: commands carry personal data (Compliance §2).
-/// Failures are logged once, by the exception handler.
+/// Logs every request by name and duration: commands at Information, queries at Debug (see <see cref="IQuery{TResponse}"/>).
+/// Never the payload: requests carry personal data (Compliance §2). Failures are logged once, by the exception handler.
 /// </summary>
 public sealed class LoggingBehavior<TRequest, TResponse>(ILogger<LoggingBehavior<TRequest, TResponse>> logger)
     : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
 {
+    // Decided once per request type, not on every call.
+    private static readonly LogLevel Level = typeof(TRequest).GetInterfaces()
+        .Any(type => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IQuery<>))
+        ? LogLevel.Debug
+        : LogLevel.Information;
+
     public async Task<TResponse> Handle(
         TRequest request,
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
-        var command = typeof(TRequest).Name;
-        logger.LogInformation("Handling {Command}", command);
+        var name = typeof(TRequest).Name;
+        logger.Log(Level, "Handling {Request}", name);
 
         var started = Stopwatch.GetTimestamp();
         var response = await next();
 
-        logger.LogInformation(
-            "Handled {Command} in {ElapsedMilliseconds:0} ms",
-            command,
-            Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+        logger.Log(Level, "Handled {Request} in {ElapsedMilliseconds:0} ms", name, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
 
         return response;
     }

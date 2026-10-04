@@ -5,8 +5,11 @@ namespace Atlas.Onboarding.Application.Persistence;
 /// <summary>Stored onboarding applications. Implemented by Infrastructure.</summary>
 public interface IOnboardingApplicationRepository
 {
-    /// <summary>Read only: for answering questions about an application.</summary>
-    Task<OnboardingApplication?> FindAsync(Guid id, CancellationToken cancellationToken);
+    /// <summary>
+    /// Where an application stands, and nothing else: four columns, no documents. Cheap enough to poll, which is what
+    /// a submission does while it waits for its decision.
+    /// </summary>
+    Task<ApplicationStatusSnapshot?> FindStatusAsync(Guid id, CancellationToken cancellationToken);
 
     /// <summary>Tracked: for changing an application, followed by <see cref="SaveChangesAsync"/>.</summary>
     Task<OnboardingApplication?> FindForUpdateAsync(Guid id, CancellationToken cancellationToken);
@@ -26,3 +29,9 @@ public interface IOnboardingApplicationRepository
     /// <summary>Saves changes to applications loaded for update, with any message published in the same unit of work.</summary>
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }
+
+public sealed record ApplicationStatusSnapshot(
+    Guid ApplicationId,
+    ApplicationStatus Status,
+    DateTimeOffset SubmittedAt,
+    DateTimeOffset? DecidedAt);
