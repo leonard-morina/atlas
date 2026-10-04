@@ -23,7 +23,7 @@ externally reachable service. Its route table (`appsettings.json`) is the public
 there exist from the outside, so versioned paths, health checks and OpenAPI documents stay internal.
 
 **Why a gateway with one public service.** The audiences differ: mobile now, compliance officers next
-(the manual review that Compliance §3 requires), and they should not share a surface. Edge concerns
+(the manual review that Compliance 3 requires), and they should not share a surface. Edge concerns
 (request size limits for the document images, rate limiting) belong in one place. YARP runs as a normal
 .NET project with `dotnet run`; Nginx/Envoy would need images outside the allowed list, and in Azure the
 AKS ingress or API Management could take over this role.
@@ -37,3 +37,46 @@ lands in the error queue, where a person decides what happens to that applicatio
 **Honest note.** This is a business decision, not a technical one, and the requirements do not answer it. I chose the
 conservative option: an application is never quietly approved, rejected or dropped under rules that no longer apply.
 It is in the open questions for Product and Compliance.
+
+## Referred applications: no review step in v1
+
+**Decision.** A possible sanctions or PEP match ends in `REFERRED`, and nothing in this system moves it on. No account
+is opened. Mobile is told the review can take up to 48 hours and is never told why (that would be tipping off).
+`VerificationCompleted` carries the World-Check case id, so a compliance officer knows which case to review.
+
+**Why not build the review.** The requirements contradict each other. Compliance 3: possible matches "must be referred
+for manual review by a compliance officer in the relevant market ... Under no circumstances may this review be automated
+or bypassed." ATLAS-1, out of scope for v1: "Anything involving a human reviewing anything." I follow Compliance, because
+it is a legal obligation and the ticket is a product choice: possible matches are stopped and referred. I do not build the
+officers' side, because the ticket rules it out, and because officers most likely work in a case-management tool
+(World-Check has its own case workflow). How that tool's decision reaches us is the real open question.
+
+**Honest note.** Until that is answered, a referred application stays `REFERRED`. It is listed under known limitations
+and in the open questions for Product and Compliance.
+
+**If it were built.** It is small, because approving already leads into account opening. A sketch:
+
+```csharp
+// Onboarding.Domain: OnboardingApplication
+public void RecordComplianceDecision(ComplianceDecision decision, OfficerId officer, string reason, DateTimeOffset at)
+{
+    if (Status != ApplicationStatus.Referred) throw ...;          // only referred applications are reviewed
+    Status = decision == Approve ? ApplicationStatus.Approved      // MD: AwaitingBranchVisit, as for any approval
+                                 : ApplicationStatus.Rejected;
+    Review = new ComplianceReview(officer, decision, reason, at);  // audit: who, what, why; kept 10 years (Compliance 4)
+}
+
+// Onboarding.Application: RecordComplianceDecisionHandler (MediatR command)
+var application = await applications.FindForUpdateAsync(command.ApplicationId);
+application.RecordComplianceDecision(command.Decision, command.Officer, command.Reason, now);
+if (application.NeedsAccount)
+    await publishEndpoint.Publish(new AccountOpeningRequested(...));   // same as an automatic approval
+await applications.SaveChangesAsync();                                 // decision and message together (outbox)
+
+// Entry point, one of:
+//  - a consumer of the case-management tool's "case closed" event (preferred: officers keep their tool), or
+//  - POST /compliance/applications/{id}/decision on a separate gateway route for officers, behind
+//    authentication with an officer role scoped to the application's market (Compliance 3: "in the relevant market").
+```
+
+The Accounts service needs no change: it opens an account for any `AccountOpeningRequested`, whoever approved it.
