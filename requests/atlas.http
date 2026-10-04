@@ -8,6 +8,7 @@
 #   4. Validation errors
 #   5. Provider stand-ins (src/Stubs) directly
 #   6. The Onboarding service directly, bypassing the gateway (debugging)
+#   7. Account opening: approved applications through core banking (the stand-in)
 #
 # Running a scenario again: each applicant can have only one open application per market, so a second run of the
 # same request answers 409. Change the identifier (any valid one, see docs) or reset the Onboarding database.
@@ -256,3 +257,128 @@ GET {{onboarding}}/v1/applications/{{applicationId}}
 
 ### 6.2 OpenAPI document (Development only; Swagger UI at {{onboarding}}/swagger)
 GET {{onboarding}}/openapi/v1.json
+
+
+# Section 7. An approved application (not MD, not referred) is handed to the Accounts worker, which opens the account in
+# core banking. GET the application (1.3) for ACCOUNT_OPENED, and watch the stand-in with 7.7. Scenario markers in the
+# last name: Timeout | Busy | Invalid | Eod. Timings are the Development ones (src/Accounts.Worker/appsettings.Development.json).
+
+### 7.1 Normal: ACCOUNT_OPENED a few seconds after APPROVED
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 8c3f7e4a-2d9b-4e3c-9b5a-4f0d6c8e2a71
+
+{
+  "firstName": "Ivo", "lastName": "Opening", "dateOfBirth": "1990-06-15",
+  "country": "MA", "nationality": "MKD",
+  "identifier": { "type": "NATIONAL_ID", "value": "1506990453319" },
+  "email": "ivo@example.com", "phone": "+38970123458",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+# 7.2 OpenAccount outlives the 20-second timeout but does open the account. Accounts never calls it again: it looks the
+#     account up every 15 seconds until the replica shows it (about 80 seconds in), then ACCOUNT_OPENED. One account.
+### 7.2 Timeout, reconciled by lookup
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 8c3f7e4a-2d9b-4e3c-9b5a-4f0d6c8e2a72
+
+{
+  "firstName": "Ivo", "lastName": "Timeout", "dateOfBirth": "1990-06-15",
+  "country": "MA", "nationality": "MKD",
+  "identifier": { "type": "NATIONAL_ID", "value": "1506990459708" },
+  "email": "ivo@example.com", "phone": "+38970123458",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+### 7.3 CONCURRENCY_LIMIT twice, then opened: retried a few seconds apart
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 8c3f7e4a-2d9b-4e3c-9b5a-4f0d6c8e2a73
+
+{
+  "firstName": "Ivo", "lastName": "Busy", "dateOfBirth": "1990-06-15",
+  "country": "MA", "nationality": "MKD",
+  "identifier": { "type": "NATIONAL_ID", "value": "1506990451545" },
+  "email": "ivo@example.com", "phone": "+38970123458",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+### 7.4 VALIDATION: not retried, escalated to operations (stays APPROVED)
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 8c3f7e4a-2d9b-4e3c-9b5a-4f0d6c8e2a74
+
+{
+  "firstName": "Ivo", "lastName": "Invalid", "dateOfBirth": "1990-06-15",
+  "country": "MA", "nationality": "MKD",
+  "identifier": { "type": "NATIONAL_ID", "value": "1506990454048" },
+  "email": "ivo@example.com", "phone": "+38970123458",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+# 7.5 Outside the window core banking still answers EOD_IN_PROGRESS for this marker; Accounts trusts the refusal and
+#     asks again every minute. Inside the window (22:00-06:00 market time) no call is made until 06:00.
+### 7.5 EOD_IN_PROGRESS: deferred
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 8c3f7e4a-2d9b-4e3c-9b5a-4f0d6c8e2a75
+
+{
+  "firstName": "Ivo", "lastName": "Eod", "dateOfBirth": "1990-06-15",
+  "country": "MA", "nationality": "MKD",
+  "identifier": { "type": "NATIONAL_ID", "value": "1506990456660" },
+  "email": "ivo@example.com", "phone": "+38970123458",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+# 7.6 Passport customers cannot be looked up (CBS-4471): an unanswered OpenAccount goes straight to operations.
+### 7.6 MF passport, timeout: escalated, never opened twice
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 8c3f7e4a-2d9b-4e3c-9b5a-4f0d6c8e2a76
+
+{
+  "firstName": "Ivo", "lastName": "Timeout", "dateOfBirth": "1990-06-15",
+  "country": "MF", "nationality": "MKD",
+  "identifier": { "type": "PASSPORT", "value": "P9876543", "issuingCountry": "SYR" },
+  "email": "ivo@example.com", "phone": "+38970123458",
+  "documents": [ { "type": "PASSPORT", "image": "aGVsbG8=" }, { "type": "SELFIE", "image": "aGVsbG8=" } ],
+  "termsAccepted": true
+}
+
+### 7.7 Core banking stand-in: accounts opened (duplicates must stay empty), calls in flight now and at peak per market
+GET {{stubs}}/_stub/corebanking
+
+### 7.8 Reset the stand-in's accounts
+DELETE {{stubs}}/_stub/corebanking
+
+### 7.9 Core banking stand-in directly: OpenAccount (SOAP 1.1)
+POST {{stubs}}/corebanking/MA/accounts
+Content-Type: text/xml
+SOAPAction: "urn:cbs:accounts:v3/OpenAccount"
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:acc="urn:cbs:accounts:v3">
+  <soap:Body>
+    <acc:OpenAccount>
+      <acc:FirstName>Ana</acc:FirstName><acc:LastName>Petrova</acc:LastName><acc:DateOfBirth>1991-03-04</acc:DateOfBirth>
+      <acc:NationalId>0403991450014</acc:NationalId><acc:ChannelReference>manual-test</acc:ChannelReference>
+    </acc:OpenAccount>
+  </soap:Body>
+</soap:Envelope>
+
+### 7.10 Core banking stand-in directly: FindCustomerAccounts (shows an account 10 seconds after it was opened)
+POST {{stubs}}/corebanking/MA/accounts
+Content-Type: text/xml
+SOAPAction: "urn:cbs:accounts:v3/FindCustomerAccounts"
+
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:acc="urn:cbs:accounts:v3">
+  <soap:Body>
+    <acc:FindCustomerAccounts><acc:NationalId>0403991450014</acc:NationalId></acc:FindCustomerAccounts>
+  </soap:Body>
+</soap:Envelope>

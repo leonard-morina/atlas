@@ -15,6 +15,7 @@
       <ProjectReference Include="..\Gateway\Gateway.csproj" />
       <ProjectReference Include="..\Stubs\Stubs.csproj" />
       <ProjectReference Include="..\Verification.Worker\Verification.Worker.csproj" />
+      <ProjectReference Include="..\Accounts.Worker\Accounts.Worker.csproj" />
     </ItemGroup>
 
 </Project>

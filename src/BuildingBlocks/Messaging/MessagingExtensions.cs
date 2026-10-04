@@ -67,6 +67,14 @@ public static class MessagingExtensions
             });
         });
 
+        // Start the web host only once the bus is connected, so /health never reports a bus that is still starting
+        // ("Not ready: not started"), and a broker that cannot be reached fails the start instead of a later check.
+        builder.Services.Configure<MassTransitHostOptions>(host =>
+        {
+            host.WaitUntilStarted = true;
+            host.StartTimeout = TimeSpan.FromSeconds(30);
+        });
+
         builder.Services.AddOpenTelemetry()
             .WithTracing(tracing => tracing.AddSource(DiagnosticHeaders.DefaultListenerName))
             .WithMetrics(metrics => metrics.AddMeter(InstrumentationOptions.MeterName));

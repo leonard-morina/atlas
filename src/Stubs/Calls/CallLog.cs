@@ -29,6 +29,7 @@ public static class CallLogEndpoints
         {
             IdNow = log.All.Count(call => call.Provider == IdNow.IdNowEndpoints.Provider),
             WorldCheck = log.All.Count(call => call.Provider == WorldCheck.WorldCheckEndpoints.Provider),
+            CoreBanking = log.All.Count(call => call.Provider == CoreBanking.CoreBankingEndpoints.Provider),
             Calls = log.All,
         });
 

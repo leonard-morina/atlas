@@ -67,6 +67,14 @@ public sealed class OnboardingApplication
     /// <summary>When verification decided; <c>null</c> while it is still running.</summary>
     public DateTimeOffset? DecidedAt { get; private set; }
 
+    /// <summary>Core banking's number for the account opened for this application; <c>null</c> until then.</summary>
+    public string? AccountNumber { get; private set; }
+
+    public DateTimeOffset? AccountOpenedAt { get; private set; }
+
+    /// <summary>Whether an account is to be opened now: approved in a market where activation is remote.</summary>
+    public bool NeedsAccount => Status == ApplicationStatus.Approved;
+
     /// <summary>
     /// The only way an application comes into existence. The market rules are enforced here as well as at
     /// the HTTP edge, so no entry point can create an application that breaks them.
@@ -130,16 +138,46 @@ public sealed class OnboardingApplication
 
         if (DecidedAt is not null)
         {
-            if (status == Status)
+            // An opened account came from an approval: that verdict delivered again is no change either.
+            var decided = Status == ApplicationStatus.AccountOpened ? ApplicationStatus.Approved : Status;
+            if (status == decided)
             {
                 return;
             }
 
-            throw new InvalidOperationException($"Application {Id} was already decided as {Status}; refusing {status}.");
+            throw new InvalidOperationException($"Application {Id} was already decided as {decided}; refusing {status}.");
         }
 
         Status = status;
         DecidedAt = decidedAt;
+    }
+
+    /// <summary>
+    /// Records the account core banking opened. Only an approved application gets one; the same account reported
+    /// again changes nothing, a different one is refused: one application, one account.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The application is not approved, or has a different account.</exception>
+    public void RecordAccountOpened(string accountNumber, DateTimeOffset openedAt)
+    {
+        if (Status == ApplicationStatus.AccountOpened)
+        {
+            if (accountNumber == AccountNumber)
+            {
+                return;
+            }
+
+            throw new InvalidOperationException(
+                $"Application {Id} already has account {AccountNumber}; refusing a second, {accountNumber}.");
+        }
+
+        if (Status != ApplicationStatus.Approved)
+        {
+            throw new InvalidOperationException($"Application {Id} is {Status}; only an approved application gets an account.");
+        }
+
+        Status = ApplicationStatus.AccountOpened;
+        AccountNumber = accountNumber;
+        AccountOpenedAt = openedAt;
     }
 
     private static bool HasOneIdentityDocumentAndOneSelfie(IReadOnlyCollection<ApplicationDocument> documents) =>
