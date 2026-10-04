@@ -76,6 +76,18 @@ public static class Extensions
         return builder;
     }
 
+    /// <summary>
+    /// How long the host waits, when stopping, for its services to finish what they are doing: messages in progress, calls
+    /// in flight. Past it the process exits anyway (.NET's default is 30 seconds). Set it from the longest operation the
+    /// service can be in the middle of; the orchestrator's grace period (Kubernetes terminationGracePeriodSeconds) must be
+    /// at least as long, or the process is killed first.
+    /// </summary>
+    public static TBuilder WaitOnShutdown<TBuilder>(this TBuilder builder, TimeSpan timeout) where TBuilder : IHostApplicationBuilder
+    {
+        builder.Services.Configure<HostOptions>(host => host.ShutdownTimeout = timeout);
+        return builder;
+    }
+
     private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
         var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);

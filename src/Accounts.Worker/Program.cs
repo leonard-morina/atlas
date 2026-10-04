@@ -10,7 +10,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.AddApplicationLayer();
 builder.AddInfrastructureLayer();
-builder.AddMessaging<AccountsDbContext>(bus => bus.AddConsumer<AccountOpeningRequestedConsumer>());
+builder.AddMessaging<AccountsDbContext>(bus =>
+{
+    bus.AddConsumer<AccountOpeningRequestedConsumer>();
+    bus.AddBroadcastConsumer<AccountOpeningQueuedConsumer>();
+});
+
+// Stopping finishes the core banking calls in flight (AccountOpeningProcessor), so the host waits for the longest.
+builder.WaitOnShutdown(AccountOpeningOptions.From(builder.Configuration).LongestCall + TimeSpan.FromSeconds(30));
 
 var app = builder.Build();
 

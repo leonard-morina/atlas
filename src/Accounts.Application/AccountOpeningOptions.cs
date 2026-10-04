@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Configuration;
+
 namespace Atlas.Accounts.Application;
 
 /// <summary>How account openings are paced, bound from "Accounts:Opening". Defaults follow the CBS integration page.</summary>
@@ -56,6 +58,16 @@ public sealed class AccountOpeningOptions
 
     /// <summary>Each market's time zone (IANA id); the end-of-day window is in market time (CBS §5).</summary>
     public Dictionary<string, string> MarketTimeZones { get; init; } = [];
+
+    /// <summary>
+    /// The longest a core banking call can take. A stopping worker finishes its calls in flight, so its host waits this
+    /// long, plus time to record the outcome.
+    /// </summary>
+    public TimeSpan LongestCall => OpenAccountTimeout > LookupTimeout ? OpenAccountTimeout : LookupTimeout;
+
+    /// <summary>The options as configured, for the host to read before the container is built.</summary>
+    public static AccountOpeningOptions From(IConfiguration configuration) =>
+        configuration.GetSection(Section).Get<AccountOpeningOptions>() ?? new();
 
     public TimeZoneInfo TimeZoneOf(string market) =>
         MarketTimeZones.TryGetValue(market, out var zone)

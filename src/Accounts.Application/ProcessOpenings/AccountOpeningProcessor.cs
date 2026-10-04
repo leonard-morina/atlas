@@ -52,9 +52,24 @@ public sealed class AccountOpeningProcessor(
         }
         finally
         {
-            // Calls cut short by the shutdown still record their outcome (as unknown) before the worker goes.
-            await Task.WhenAll(_calls.Values);
+            await DrainAsync();
         }
+    }
+
+    // Stopping (a deployment, a scale-down): nothing new is claimed, and the calls in flight are finished rather than cut
+    // off. A cut-off OpenAccount would be safe, since it is looked up later, but it throws away a call that may be about to
+    // succeed. Each call ends within its own timeout, and the host waits that long (ApplicationLayerExtensions).
+    private async Task DrainAsync()
+    {
+        var inFlight = _calls.Values.ToArray();
+        if (inFlight.Length == 0)
+        {
+            return;
+        }
+
+        logger.LogInformation("Stopping: finishing {Count} core banking calls in flight before exiting", inFlight.Length);
+        await Task.WhenAll(inFlight);
+        logger.LogInformation("Stopped: all core banking calls in flight finished");
     }
 
     /// <returns>How long until there is work again, as far as this instance can tell.</returns>
@@ -87,7 +102,7 @@ public sealed class AccountOpeningProcessor(
 
                 foreach (var applicationId in claimed)
                 {
-                    _calls[applicationId] = CallAsync(applicationId, stoppingToken);
+                    _calls[applicationId] = CallAsync(applicationId);
                 }
             }
 
@@ -98,7 +113,8 @@ public sealed class AccountOpeningProcessor(
         return Clamp(nextWork - now, Options.PollInterval, Options.IdlePollInterval);
     }
 
-    private async Task CallAsync(Guid applicationId, CancellationToken stoppingToken)
+    // Not cancelled when the worker stops: a call started is finished (DrainAsync). Its own timeout bounds it.
+    private async Task CallAsync(Guid applicationId)
     {
         // Off the polling loop: an OpenAccount call takes a minute or more.
         await Task.Yield();
@@ -106,7 +122,7 @@ public sealed class AccountOpeningProcessor(
         try
         {
             await using var scope = scopes.CreateAsyncScope();
-            await scope.ServiceProvider.GetRequiredService<CallCoreBankingHandler>().HandleAsync(applicationId, stoppingToken);
+            await scope.ServiceProvider.GetRequiredService<CallCoreBankingHandler>().HandleAsync(applicationId, CancellationToken.None);
         }
         catch (Exception exception)
         {

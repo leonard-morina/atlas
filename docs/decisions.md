@@ -131,3 +131,32 @@ because they submit many applications from one address; one test turns it on wit
 addresses, so the limit has to be generous, and a determined attacker rotates addresses. A limit per device or per user
 needs authentication, which this API does not have yet (open question). Behind a load balancer in production, the
 gateway must trust its forwarded headers, or every client shares the balancer's address.
+
+## Stopping a worker: finish what was started, take nothing new
+
+**Decision.** A worker told to stop (a deployment, a scale-down: SIGTERM, or Stop in the Aspire dashboard) takes no new
+work and finishes what it is doing. MassTransit already does this for messages: it stops receiving, lets the messages in
+progress finish, and returns what it had prefetched to the queue. The Accounts processor does the same for its core
+banking calls: it claims nothing new and lets the calls in flight finish instead of cancelling them. A cancelled
+OpenAccount would be safe (it is looked up later), but it throws away a call that may be about to succeed.
+
+**The host has to wait.** .NET stops waiting for its services after 30 seconds and exits anyway. Each worker sets its
+shutdown timeout from the longest operation it can be in the middle of (`WaitOnShutdown` in ServiceDefaults): the slowest
+provider's timeout for Verification, the OpenAccount timeout for Accounts, plus time to record the outcome. In Kubernetes,
+`terminationGracePeriodSeconds` must be at least as long, or the pod is killed first.
+
+**The Onboarding API** drains the same way: ASP.NET Core stops accepting connections and lets requests in progress
+finish, including a submission waiting for its decision (measured: it still answered, and the API exited when it had).
+Services stop in reverse order of registration, so the web server finishes before the bus stops, and the waiting request
+still receives its wake-up. Its longest request is the 10-second decision wait, within .NET's default 30 seconds, so it
+needs no timeout of its own. The gateway now gives up on the API after 30 seconds instead of YARP's default 100: a request
+sent to an instance that is going away fails within that, rather than leaving mobile waiting for over a minute.
+
+**When it is killed anyway** (a crash, SIGKILL, the grace period running out), nothing runs, and the system recovers
+instead: RabbitMQ redelivers unacknowledged messages, the inbox keeps them from being handled twice, and an Accounts lease
+running out hands a lost call to another instance, which looks the account up rather than opening it again.
+
+**Found on the way.** The Accounts processor was woken for a new opening from inside the consumer, before the outbox
+committed it. With read committed snapshot (on for these databases, and the default in Azure SQL) the woken processor read
+the table without the new opening and slept until its 30-second fallback. The wake-up now goes through the outbox, as
+Onboarding's does: `AccountOpeningQueued`, delivered after the commit to every Accounts instance.

@@ -2,6 +2,7 @@ using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Atlas.IntegrationTests;
 
@@ -46,6 +47,13 @@ public static class AtlasApp
         var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.AppHost>(
             [$"--Atlas:Instance={instance}", $"--Atlas:ResetInstance={reset}"], timeout.Token);
 
+        // There is no Aspire dashboard under the test host, so nothing listens for the services' telemetry. Without this,
+        // every service waits about ten seconds on shutdown trying to send its last batch. Logs still go to Seq.
+        foreach (var project in builder.Resources.OfType<ProjectResource>())
+        {
+            builder.CreateResourceBuilder(project).WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", "");
+        }
+
         // The tests submit many applications from one address; the limit has its own switch (docs/decisions.md).
         builder.CreateResourceBuilder<ProjectResource>("gateway")
             .WithEnvironment("Gateway__RateLimiting__Enabled", "false");
@@ -55,11 +63,12 @@ public static class AtlasApp
         builder.CreateResourceBuilder<ProjectResource>("onboarding-api")
             .WithEnvironment("Onboarding__DecisionWait__Budget", "00:00:05");
 
-        // Account opening on a faster clock, in the same order as in production: our OpenAccount call gives up (3 s),
-        // core banking opens the account anyway (6 s), and its lookup replica shows it later still (3 s after that).
+        // Account opening on a faster clock, in the same order as in production: an ordinary OpenAccount takes 2 s (long
+        // enough to stop a worker in the middle of one), our call gives up after 5 s, core banking's slow case opens the
+        // account anyway after 8 s, and its lookup replica shows it 3 s after that.
         // The end-of-day window is off, or the tests waiting for an account would fail between 22:00 and 06:00.
         builder.CreateResourceBuilder<ProjectResource>("accounts-worker")
-            .WithEnvironment("Accounts__Opening__OpenAccountTimeout", "00:00:03")
+            .WithEnvironment("Accounts__Opening__OpenAccountTimeout", "00:00:05")
             .WithEnvironment("Accounts__Opening__LookupTimeout", "00:00:03")
             .WithEnvironment("Accounts__Opening__LeaseMargin", "00:00:05")
             .WithEnvironment("Accounts__Opening__ConfirmationDelay", "00:00:02")
@@ -67,8 +76,8 @@ public static class AtlasApp
             .WithEnvironment("Accounts__Opening__ObserveEndOfDayWindow", "false");
         builder.CreateResourceBuilder<ProjectResource>("stubs")
             .WithEnvironment("Stubs__SlowResponseDelay", "00:00:08")
-            .WithEnvironment("Stubs__CoreBanking__OpenAccountDelay", "00:00:01")
-            .WithEnvironment("Stubs__CoreBanking__TimeoutScenarioDelay", "00:00:06")
+            .WithEnvironment("Stubs__CoreBanking__OpenAccountDelay", "00:00:02")
+            .WithEnvironment("Stubs__CoreBanking__TimeoutScenarioDelay", "00:00:08")
             .WithEnvironment("Stubs__CoreBanking__ReplicaDelay", "00:00:03")
             .WithEnvironment("Stubs__CoreBanking__EnforceEndOfDay", "false");
 
@@ -93,6 +102,23 @@ public static class AtlasApp
         {
             await _app.DisposeAsync();
         }
+    }
+
+    /// <summary>Stops a service as a deployment would (a graceful stop signal), and waits until it has exited.</summary>
+    public static async Task StopServiceAsync(string service)
+    {
+        var result = await App.Services.GetRequiredService<ResourceCommandService>()
+            .ExecuteCommandAsync(service, KnownResourceCommands.StopCommand);
+        Assert.IsTrue(result.Success, $"Stopping {service}: {result.Message}");
+    }
+
+    /// <summary>Starts a stopped service again and waits until it is healthy.</summary>
+    public static async Task StartServiceAsync(string service)
+    {
+        var result = await App.Services.GetRequiredService<ResourceCommandService>()
+            .ExecuteCommandAsync(service, KnownResourceCommands.StartCommand);
+        Assert.IsTrue(result.Success, $"Starting {service}: {result.Message}");
+        await App.ResourceNotifications.WaitForResourceHealthyAsync(service);
     }
 
     /// <summary>A connection to a service's own database, for checking what was stored.</summary>

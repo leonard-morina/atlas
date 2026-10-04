@@ -1,6 +1,7 @@
 using Atlas.Accounts.Application.Abstractions;
 using Atlas.Accounts.Application.ProcessOpenings;
 using Atlas.Accounts.Domain.Openings;
+using MassTransit;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -13,7 +14,7 @@ namespace Atlas.Accounts.Application.RequestAccountOpening;
 public sealed class RequestAccountOpeningHandler(
     IAccountOpeningRepository openings,
     IOptions<AccountOpeningOptions> options,
-    OpeningSignal signal,
+    IPublishEndpoint publishEndpoint,
     TimeProvider time,
     ILogger<RequestAccountOpeningHandler> logger)
 {
@@ -31,10 +32,11 @@ public sealed class RequestAccountOpeningHandler(
         _ = options.Value.TimeZoneOf(command.Market);
 
         openings.Add(AccountOpening.Request(command.ApplicationId, command.Market, command.Customer, time.GetUtcNow()));
-        await openings.SaveChangesAsync(cancellationToken);
 
-        // Started now rather than at the processor's next look.
-        signal.Notify();
+        // Wakes a processor to start it now rather than at its next look. Through the outbox, so it arrives only once the
+        // opening is committed: woken any earlier, a processor would not see it yet (read committed snapshot).
+        await publishEndpoint.Publish(new AccountOpeningQueued(command.ApplicationId, command.Market), cancellationToken);
+        await openings.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
             "Account opening for application {ApplicationId} queued in market {Market}", command.ApplicationId, command.Market);
