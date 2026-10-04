@@ -21,6 +21,7 @@
       <ProjectReference Include="..\Onboarding.Application\Onboarding.Application.csproj" />
       <ProjectReference Include="..\Onboarding.Infrastructure\Onboarding.Infrastructure.csproj" />
       <ProjectReference Include="..\Verification.Contracts\Verification.Contracts.csproj" />
+      <ProjectReference Include="..\Accounts.Contracts\Accounts.Contracts.csproj" />
     </ItemGroup>
 
 </Project>

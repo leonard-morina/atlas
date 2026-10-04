@@ -15,6 +15,9 @@ public enum ApplicationStatus
 
     /// <summary>Approved; the customer must visit a branch to sign before the account is activated (MD).</summary>
     AwaitingBranchVisit,
+
+    /// <summary>Approved, and the current account is open.</summary>
+    AccountOpened,
 }
 
 public static class ApplicationStatusMapping
@@ -26,10 +29,15 @@ public static class ApplicationStatusMapping
         Domain.Applications.ApplicationStatus.Rejected => ApplicationStatus.Rejected,
         Domain.Applications.ApplicationStatus.Referred => ApplicationStatus.Referred,
         Domain.Applications.ApplicationStatus.AwaitingBranchVisit => ApplicationStatus.AwaitingBranchVisit,
+        Domain.Applications.ApplicationStatus.AccountOpened => ApplicationStatus.AccountOpened,
         _ => throw new ArgumentOutOfRangeException(nameof(status), status, null),
     };
 
-    /// <summary>Whether the customer has a decision. Without one, mobile checks back later.</summary>
+    /// <summary>
+    /// Whether the customer has a decision. Without one, mobile checks back later. An approved application moves on
+    /// to <c>ACCOUNT_OPENED</c> once core banking has opened the account, typically within a few minutes.
+    /// </summary>
     public static bool IsFinal(this ApplicationStatus status) =>
-        status is ApplicationStatus.Approved or ApplicationStatus.Rejected or ApplicationStatus.AwaitingBranchVisit;
+        status is ApplicationStatus.Approved or ApplicationStatus.Rejected or ApplicationStatus.AwaitingBranchVisit
+            or ApplicationStatus.AccountOpened;
 }

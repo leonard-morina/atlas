@@ -1,5 +1,10 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Accounts.Application/Accounts.Application.csproj" />
+    <Project Path="src/Accounts.Contracts/Accounts.Contracts.csproj" />
+    <Project Path="src/Accounts.Domain/Accounts.Domain.csproj" />
+    <Project Path="src/Accounts.Infrastructure/Accounts.Infrastructure.csproj" />
+    <Project Path="src/Accounts.Worker/Accounts.Worker.csproj" />
     <Project Path="src/AppHost/AppHost.csproj" />
     <Project Path="src/Gateway/Gateway.csproj" />
     <Project Path="src/Onboarding.Api/Onboarding.Api.csproj" />
@@ -21,6 +26,7 @@
     <Project Path="src/BuildingBlocks/Persistence/Persistence.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Accounts.UnitTests/Accounts.UnitTests.csproj" />
     <Project Path="tests/Onboarding.UnitTests/Onboarding.UnitTests.csproj" />
     <Project Path="tests/Verification.UnitTests/Verification.UnitTests.csproj" />
   </Folder>

@@ -18,6 +18,7 @@ internal sealed class OnboardingApplicationConfiguration : IEntityTypeConfigurat
         builder.Property(application => application.RequestFingerprint).HasMaxLength(64).IsUnicode(false);
         builder.Property(application => application.Market).HasMaxLength(2).IsUnicode(false);
         builder.Property(application => application.Status).HasConversion<string>().HasMaxLength(20).IsUnicode(false);
+        builder.Property(application => application.AccountNumber).HasMaxLength(34).IsUnicode(false);
 
         builder.OwnsOne(application => application.Applicant, applicant =>
         {

@@ -116,6 +116,70 @@ public sealed class OnboardingApplicationTests
         Assert.ThrowsExactly<InvalidOperationException>(() => application.RecordVerification(VerificationVerdict.Approved, MB, Now));
     }
 
+    [TestMethod]
+    public void RecordAccountOpened_moves_an_approved_application_on()
+    {
+        var application = Submit(MB, ValidPersonalNumber);
+        application.RecordVerification(VerificationVerdict.Approved, MB, Now);
+
+        application.RecordAccountOpened("MB0000000001", Now.AddMinutes(2));
+
+        Assert.AreEqual(ApplicationStatus.AccountOpened, application.Status);
+        Assert.AreEqual("MB0000000001", application.AccountNumber);
+        Assert.AreEqual(Now.AddMinutes(2), application.AccountOpenedAt);
+    }
+
+    [TestMethod]
+    public void RecordAccountOpened_of_the_same_account_again_changes_nothing_and_a_second_is_refused()
+    {
+        var application = Submit(MB, ValidPersonalNumber);
+        application.RecordVerification(VerificationVerdict.Approved, MB, Now);
+        application.RecordAccountOpened("MB0000000001", Now);
+
+        application.RecordAccountOpened("MB0000000001", Now.AddMinutes(1));
+
+        Assert.AreEqual(Now, application.AccountOpenedAt);
+        Assert.ThrowsExactly<InvalidOperationException>(() => application.RecordAccountOpened("MB0000000002", Now));
+    }
+
+    [TestMethod]
+    [DataRow(VerificationVerdict.Referred)]
+    [DataRow(VerificationVerdict.Rejected)]
+    public void RecordAccountOpened_is_refused_without_an_approval(VerificationVerdict verdict)
+    {
+        var application = Submit(MB, ValidPersonalNumber);
+        application.RecordVerification(verdict, MB, Now);
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => application.RecordAccountOpened("MB0000000001", Now));
+    }
+
+    [TestMethod]
+    public void RecordVerification_of_the_approval_again_after_the_account_opened_changes_nothing()
+    {
+        var application = Submit(MB, ValidPersonalNumber);
+        application.RecordVerification(VerificationVerdict.Approved, MB, Now);
+        application.RecordAccountOpened("MB0000000001", Now);
+
+        application.RecordVerification(VerificationVerdict.Approved, MB, Now.AddMinutes(5));
+
+        Assert.AreEqual(ApplicationStatus.AccountOpened, application.Status);
+        Assert.IsFalse(application.NeedsAccount);
+    }
+
+    [TestMethod]
+    public void Only_an_approval_with_remote_activation_needs_an_account()
+    {
+        var md = new Market("MD", AcceptsPassport: false, ActivationMode.InBranch, new PersonalNumberValidator());
+        var inBranch = Submit(md, ValidPersonalNumber);
+        var remote = Submit(MB, ValidPersonalNumber);
+
+        inBranch.RecordVerification(VerificationVerdict.Approved, md, Now);
+        remote.RecordVerification(VerificationVerdict.Approved, MB, Now);
+
+        Assert.IsFalse(inBranch.NeedsAccount);
+        Assert.IsTrue(remote.NeedsAccount);
+    }
+
     private static OnboardingApplication Submit(Market market, ApplicantIdentifier identifier) =>
         OnboardingApplication.Submit(Guid.NewGuid(), Guid.NewGuid(), "fingerprint", market, Ana, identifier, Documents, Now);
 }

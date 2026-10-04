@@ -18,4 +18,7 @@ public enum ApplicationStatus
     /// identification covers the application only.
     /// </summary>
     AwaitingBranchVisit,
+
+    /// <summary>Approved, and core banking has opened the current account.</summary>
+    AccountOpened,
 }

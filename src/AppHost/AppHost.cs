@@ -7,12 +7,14 @@ var env = DotEnv.Load(builder.AppHostDirectory);
 
 const string onboardingDbConnectionStringName = "onboarding-db";
 const string verificationDbConnectionStringName = "verification-db";
+const string accountsDbConnectionStringName = "accounts-db";
 const string rabbitMqConnectionStringName = "rabbitmq";
 const string seqConnectionStringName = "seq";
 const string documentsConnectionStringName = "documents";
 
 builder.Configuration[$"ConnectionStrings:{onboardingDbConnectionStringName}"] = SqlDatabase("atlas_onboarding");
 builder.Configuration[$"ConnectionStrings:{verificationDbConnectionStringName}"] = SqlDatabase("atlas_verification");
+builder.Configuration[$"ConnectionStrings:{accountsDbConnectionStringName}"] = SqlDatabase("atlas_accounts");
 builder.Configuration[$"ConnectionStrings:{rabbitMqConnectionStringName}"] =
     $"amqp://{Uri.EscapeDataString(env["RABBITMQ_USER"])}:{Uri.EscapeDataString(env["RABBITMQ_PASSWORD"])}" +
     $"@localhost:{env["RABBITMQ_PORT"]}";
@@ -25,6 +27,7 @@ builder.Configuration[$"ConnectionStrings:documents"] =
 
 var onboardingDb = builder.AddConnectionString(onboardingDbConnectionStringName);
 var verificationDb = builder.AddConnectionString(verificationDbConnectionStringName);
+var accountsDb = builder.AddConnectionString(accountsDbConnectionStringName);
 var rabbitmq = builder.AddConnectionString(rabbitMqConnectionStringName);
 var seq = builder.AddConnectionString(seqConnectionStringName);
 var documents = builder.AddConnectionString(documentsConnectionStringName);
@@ -43,6 +46,12 @@ builder.AddProject<Projects.Verification_Worker>("verification-worker")
     .WithReference(stubs)
     .WithHttpHealthCheck("/health");
 
+// Opens the accounts of approved applications in core banking (the stand-in in stubs locally).
+builder.AddProject<Projects.Accounts_Worker>("accounts-worker")
+    .WithReference(accountsDb).WithReference(rabbitmq).WithReference(seq)
+    .WithReference(stubs)
+    .WithHttpHealthCheck("/health");
+
 // This is the Yarp reverse proxy, its the only reachable service, and it maps the versioned API from onboarding to the unversioned one
 builder.AddProject<Projects.Gateway>("gateway")
     .WithReference(onboardingApi).WaitFor(onboardingApi)
@@ -53,7 +62,7 @@ builder.AddProject<Projects.Gateway>("gateway")
 builder.Build().Run();
 return;
 
-// We use on Sql Server instance with multiple databases per service(Onboarding, Verification)
+// We use on Sql Server instance with multiple databases per service(Onboarding, Verification, Accounts)
 string SqlDatabase(string database) => new DbConnectionStringBuilder
 {
     ["Server"] = $"localhost,{env["SQL_PORT"]}",

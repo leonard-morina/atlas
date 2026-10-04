@@ -27,6 +27,14 @@ namespace Atlas.Onboarding.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AccountNumber")
+                        .HasMaxLength(34)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(34)");
+
+                    b.Property<DateTimeOffset?>("AccountOpenedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("BlockingIdentity")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasMaxLength(60)

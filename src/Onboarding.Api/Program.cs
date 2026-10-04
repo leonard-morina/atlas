@@ -19,6 +19,7 @@ builder.AddInfrastructureLayer();
 builder.AddMessaging<OnboardingDbContext>(bus =>
 {
     bus.AddConsumer<VerificationCompletedConsumer>();
+    bus.AddConsumer<AccountOpenedConsumer>();
 });
 builder.AddApplicationsApi();
 
