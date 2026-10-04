@@ -21,6 +21,7 @@ public static class ApplicationsApi
         builder.Services.AddValidatorsFromAssemblyContaining<SubmitApplicationRequestValidator>();
         builder.Services.Configure<DecisionWaitOptions>(builder.Configuration.GetSection("Onboarding:DecisionWait"));
         builder.Services.AddScoped<DecisionWait>();
+        builder.Services.AddSingleton<DecisionSignal>();
 
         return builder;
     }

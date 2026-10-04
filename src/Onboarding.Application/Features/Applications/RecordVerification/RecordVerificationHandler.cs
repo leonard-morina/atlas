@@ -31,6 +31,12 @@ public sealed class RecordVerificationHandler(
         var alreadyDecided = application.DecidedAt is not null;
         application.RecordVerification(command.Verdict, market, command.DecidedAt);
 
+        // Tells whoever is waiting for this decision (a submission still holding its HTTP request) once it is committed.
+        if (!alreadyDecided)
+        {
+            await publishEndpoint.Publish(new ApplicationDecided(application.Id, command.DecidedAt), cancellationToken);
+        }
+
         // Approved with remote activation: the account is opened next, by Accounts. Saved with the decision (outbox),
         // so an approval never goes without its request, and a redelivered verdict does not request a second.
         if (!alreadyDecided && application.NeedsAccount)

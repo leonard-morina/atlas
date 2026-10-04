@@ -80,3 +80,27 @@ await applications.SaveChangesAsync();                                 // decisi
 ```
 
 The Accounts service needs no change: it opens an account for any `AccountOpeningRequested`, whoever approved it.
+
+## Waking a waiting submission: a broadcast through the broker, after commit
+
+**Decision.** A submission waits up to 10 seconds for its decision (mobile wants one call, one answer). It no longer polls
+the database every 100 ms for that, which was up to 100 queries per submission. It sleeps until the decision is
+announced, then reads it once. The decision may be recorded by one API instance while the HTTP request waits on another,
+so the announcement reaches every instance: each has its own RabbitMQ queue for it, created at startup and deleted by the
+broker when the instance's connection closes (`AddBroadcastConsumer` in the Messaging building block).
+
+**Announced only after the commit.** Recording the decision publishes an `ApplicationDecided` event through the outbox,
+so it is delivered only once the decision is committed, and Onboarding consumes its own event to wake the request.
+Announcing from inside the handler would be earlier: with read committed snapshot (the default in Azure SQL Database), the
+woken request could read the application before the decision is visible, and wait out its budget for nothing.
+
+**A hint, never the record.** The decision is always read from the database. A lost announcement (the broker restarting,
+an instance's queue being recreated) costs at most one fallback poll, every second. The broadcast queues skip the retry
+and inbox/outbox every other endpoint has: they only wake a request in memory, so there is nothing to make atomic or to
+deduplicate.
+
+**Rejected.** An in-process signal (as Accounts uses) cannot reach another instance. Redis pub/sub works too, and was the
+first version; it took an extra hop (event to one instance, then Redis to all) and an extra dependency for a signal the
+broker can already deliver. Redis stays for what only it does here: shared counters for rate limiting at the gateway.
+Caching application status was rejected: the lookup is one primary-key read, and the status changes within seconds,
+which is exactly what the client is asking about.

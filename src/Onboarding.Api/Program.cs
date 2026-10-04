@@ -20,6 +20,7 @@ builder.AddMessaging<OnboardingDbContext>(bus =>
 {
     bus.AddConsumer<VerificationCompletedConsumer>();
     bus.AddConsumer<AccountOpenedConsumer>();
+    bus.AddBroadcastConsumer<ApplicationDecidedConsumer>();
 });
 builder.AddApplicationsApi();
 

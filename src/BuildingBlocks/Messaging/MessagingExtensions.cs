@@ -37,8 +37,14 @@ public static class MessagingExtensions
                 outbox.UseBusOutbox();
             });
 
-            bus.AddConfigureEndpointsCallback((context, _, endpoint) =>
+            bus.AddConfigureEndpointsCallback((context, name, endpoint) =>
             {
+                // A broadcast only signals this process; it has no database work to make atomic or to deduplicate.
+                if (IsBroadcastEndpoint(name))
+                {
+                    return;
+                }
+
                 // Transient failures (a provider briefly down or too slow, a database blip) get a few spaced
                 // attempts; after that the message moves to the endpoint's _error queue for operations to look at.
                 // Longer delayed redelivery needs a message scheduler: RabbitMQ only with a plugin, Azure Service
@@ -81,4 +87,24 @@ public static class MessagingExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Registers a consumer that every running instance of the service receives, not just one of them: each instance gets
+    /// its own queue, deleted when the instance stops. For signals about work another instance did, such as waking a
+    /// request this instance holds. Missed while an instance is down, so only for hints that have a fallback.
+    /// </summary>
+    public static void AddBroadcastConsumer<TConsumer>(this IBusRegistrationConfigurator bus)
+        where TConsumer : class, IConsumer =>
+        bus.AddConsumer<TConsumer>().Endpoint(endpoint =>
+        {
+            endpoint.Name = $"{KebabCaseEndpointNameFormatter.Instance.Consumer<TConsumer>()}{BroadcastMarker}{InstanceName}";
+            endpoint.Temporary = true;
+        });
+
+    private const string BroadcastMarker = "-broadcast-";
+
+    // Unique per process, so two instances on one machine get a queue each.
+    private static readonly string InstanceName = $"{Environment.MachineName}-{Environment.ProcessId}".ToLowerInvariant();
+
+    private static bool IsBroadcastEndpoint(string name) => name.Contains(BroadcastMarker, StringComparison.Ordinal);
 }
