@@ -6,6 +6,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
@@ -82,6 +83,13 @@ public static class Extensions
         if (useOtlpExporter)
         {
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
+        }
+
+        // A separate instance of the system (the integration tests) logs to the same Seq: tagged, so it can be filtered.
+        if (builder.Configuration["Atlas:Instance"] is { Length: > 0 } instance)
+        {
+            builder.Services.AddOpenTelemetry().ConfigureResource(resource =>
+                resource.AddAttributes([new KeyValuePair<string, object>("deployment.environment", instance)]));
         }
 
         // Seq (platform/docker-compose.yml) receives logs and traces alongside the Aspire dashboard.
