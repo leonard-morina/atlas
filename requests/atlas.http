@@ -9,6 +9,7 @@
 #   5. Provider stand-ins (src/Stubs) directly
 #   6. The Onboarding service directly, bypassing the gateway (debugging)
 #   7. Account opening: approved applications through core banking (the stand-in)
+#   8. Rate limiting at the gateway
 #
 # Running a scenario again: each applicant can have only one open application per market, so a second run of the
 # same request answers 409. Change the identifier (any valid one, see docs) or reset the Onboarding database.
@@ -382,3 +383,19 @@ SOAPAction: "urn:cbs:accounts:v3/FindCustomerAccounts"
     <acc:FindCustomerAccounts><acc:NationalId>0403991450014</acc:NationalId></acc:FindCustomerAccounts>
   </soap:Body>
 </soap:Envelope>
+
+
+# Section 8. Submissions are limited per client address: 10 per minute (Gateway:RateLimiting in src/Gateway/appsettings.json).
+# Run 8.1 eleven times within a minute: the first ten reach Onboarding and fail validation (the body is empty), the eleventh is refused
+# before it reaches Onboarding. Every request counts, valid or not. GET requests are not limited.
+
+### 8.1 Run eleven times quickly: the 11th answers 429 with Retry-After
+POST {{gateway}}/applications
+Content-Type: application/json
+Idempotency-Key: 5e7c2a1b-8d4f-4b3a-9c6e-1f0a2b3c4d81
+
+{}
+
+### 8.2 The counter in Redis (from a terminal):
+#     docker exec atlas-redis-1 redis-cli --scan --pattern 'atlas:gateway:ratelimit:*'
+#     Turn the limit off for a run: Gateway__RateLimiting__Enabled=false dotnet run --project src/AppHost

@@ -58,6 +58,7 @@ builder.AddProject<Projects.Accounts_Worker>("accounts-worker")
 // This is the Yarp reverse proxy, its the only reachable service, and it maps the versioned API from onboarding to the unversioned one
 builder.AddProject<Projects.Gateway>("gateway")
     .WithReference(onboardingApi).WaitFor(onboardingApi)
+    .WithReference(redis)
     .WithReference(seq)
     .WithHttpHealthCheck("/health")
     .WithExternalHttpEndpoints();

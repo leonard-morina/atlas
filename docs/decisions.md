@@ -104,3 +104,30 @@ first version; it took an extra hop (event to one instance, then Redis to all) a
 broker can already deliver. Redis stays for what only it does here: shared counters for rate limiting at the gateway.
 Caching application status was rejected: the lookup is one primary-key read, and the status changes within seconds,
 which is exactly what the client is asking about.
+
+## Rate limiting submissions at the gateway, counted in Redis
+
+**Decision.** `POST /applications` is limited per client address at the gateway: 10 per minute by default
+(`Gateway:RateLimiting`). The 11th gets `429` with `Retry-After` and a problem-details body. Status reads
+(`GET /applications/{id}`) are not limited: mobile polls them, and each is one primary-key lookup.
+
+**Why submissions.** Each one costs money before it costs load: an IDNow identification, a World-Check case, two stored
+images. A script resubmitting in a loop is a cost and abuse problem, so the limit sits at the edge, before any of that.
+
+**Why Redis.** ASP.NET Core's limiter counts per process; with three gateway instances a limit of 10 would really be 30.
+The count lives in Redis, one key per client per window (`INCR` and the window's expiry in one Lua script), so every
+instance shares it. A small limiter of our own rather than a package, because what happens without Redis matters more
+than the algorithm.
+
+**Fails open.** If Redis is unreachable the request is let through, within a quarter of a second at most (commands fail
+at once while disconnected), and the gateway stays healthy. A cache outage must not become an onboarding outage; abuse
+during it is bounded by the providers' own quotas.
+
+**Off switch.** `Gateway:RateLimiting:Enabled=false` (for example `Gateway__RateLimiting__Enabled=false` as an
+environment variable) turns it off, and the gateway then does not connect to Redis at all. Integration tests use it,
+because they submit many applications from one address; one test turns it on with a small limit to prove the 429.
+
+**Honest note.** The endpoint is anonymous, so the only key is the client address. Mobile users behind carrier NAT share
+addresses, so the limit has to be generous, and a determined attacker rotates addresses. A limit per device or per user
+needs authentication, which this API does not have yet (open question). Behind a load balancer in production, the
+gateway must trust its forwarded headers, or every client shares the balancer's address.
