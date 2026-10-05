@@ -14,8 +14,9 @@ namespace Atlas.IntegrationTests;
 /// same containers, so local development data is never touched and the tests can run while development is running.
 /// Data is kept between runs (every test makes its own applicant, so earlier rows never get in the way), and a run can
 /// be looked at in the databases afterwards. ATLAS_TEST_RESET=true starts from empty databases instead, built by the
-/// migrations. ATLAS_TEST_INSTANCE picks another instance, or, set to empty, the development setup itself (never reset;
-/// stop a locally running AppHost first, both would use the same queues).
+/// migrations. ATLAS_TEST_INSTANCE picks another instance, or "dev" the development setup itself (never reset; stop a
+/// locally running AppHost first, both would use the same queues). "dev" rather than empty: Windows deletes a variable
+/// set to empty.
 /// </summary>
 [TestClass]
 public static class AtlasApp
@@ -42,7 +43,12 @@ public static class AtlasApp
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationTokenSource.Token);
         timeout.CancelAfter(TimeSpan.FromMinutes(3));
 
-        var instance = Environment.GetEnvironmentVariable("ATLAS_TEST_INSTANCE") ?? DefaultInstance;
+        var instance = Environment.GetEnvironmentVariable("ATLAS_TEST_INSTANCE") switch
+        {
+            null or "" => DefaultInstance,
+            "dev" => "", // the development setup
+            var name => name,
+        };
         var reset = Environment.GetEnvironmentVariable("ATLAS_TEST_RESET") is "true";
         var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.AppHost>(
             [$"--Atlas:Instance={instance}", $"--Atlas:ResetInstance={reset}"], timeout.Token);

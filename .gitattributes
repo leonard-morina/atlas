@@ -3,6 +3,9 @@
 ###############################################################################
 * text=auto
 *.sh text eol=lf
+# Read by Docker Compose and the AppHost on every OS: keep it LF, so no stray carriage return ends up in a value
+# (a port or the SQL password) when it is checked out on Windows.
+.env text eol=lf
 
 ###############################################################################
 # Set default behavior for command prompt diff.
