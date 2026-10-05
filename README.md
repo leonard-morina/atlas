@@ -114,6 +114,9 @@ Left out, on purpose:
 - **Real providers, deployment.** No Dockerfiles or Kubernetes manifests. It would run on AKS with Azure SQL and
   Service Bus, that's a config change for MassTransit and the connection strings, not a code change.
 - **Telling ops about escalations.** Accounts publishes `AccountOpeningEscalated` but nobody consumes it yet.
+- **Migrations for production.** The services apply their migrations on startup, but only in Development. For a real
+  deployment I'd use a migrator project per database, an EF bundle, or reviewed SQL scripts, why is in
+  docs/decisions.md.
 
 ## Handy switches
 

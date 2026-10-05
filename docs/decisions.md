@@ -160,3 +160,32 @@ running out hands a lost call to another instance, which looks the account up ra
 committed it. With read committed snapshot (on for these databases, and the default in Azure SQL) the woken processor read
 the table without the new opening and slept until its 30-second fallback. The wake-up now goes through the outbox, as
 Onboarding's does: `AccountOpeningQueued`, delivered after the commit to every Accounts instance.
+
+## Migrations: on startup in development only
+
+**Decision.** Each service applies its own EF Core migrations when it starts, but only in Development
+(`MigrateDatabaseAsync` in each `Program.cs`). That keeps local runs and the integration tests to one command, and the
+test databases are even built from empty by the migrations when asked to (`ATLAS_TEST_RESET=true`).
+
+**In a real project I would not migrate on startup outside development**, and Microsoft says the same
+([applying migrations](https://learn.microsoft.com/ef/core/managing-schemas/migrations/applying)):
+
+- every replica tries to migrate when it starts (EF Core 9 and later take a lock, but they still all race for it),
+- the app's database login needs permission to change the schema, which it otherwise doesn't,
+- a slow or failing migration holds up or breaks the deployment of the service, and nobody reviewed the SQL first.
+
+With three databases, one per service, I'd pick one of these, per service:
+
+- **A migrator project per database**: a small worker that applies the migrations and exits, run before the service.
+  Aspire supports this directly (the service waits for the migrator to finish), see
+  [Apply EF Core migrations in Aspire](https://learn.microsoft.com/dotnet/aspire/database/ef-core-migrations).
+- **An EF bundle**: `dotnet ef migrations bundle` builds a single executable with the migrations, which the deployment
+  pipeline runs before rolling out the service, see
+  [migration bundles](https://learn.microsoft.com/ef/core/managing-schemas/migrations/applying#bundles).
+- **SQL scripts**: `dotnet ef migrations script --idempotent` generates a script that can be reviewed (by a DBA, if
+  there is one) and applied by the pipeline, see
+  [SQL scripts](https://learn.microsoft.com/ef/core/managing-schemas/migrations/applying#sql-scripts). This is
+  Microsoft's recommended way for production.
+
+Which one depends on how the team deploys. Scripts if schema changes get reviewed, a bundle or a migrator if the
+pipeline should just do it. Either way the service itself only needs read and write access, not schema changes.
