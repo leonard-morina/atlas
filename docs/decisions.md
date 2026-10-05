@@ -189,3 +189,25 @@ With three databases, one per service, I'd pick one of these, per service:
 
 Which one depends on how the team deploys. Scripts if schema changes get reviewed, a bundle or a migrator if the
 pipeline should just do it. Either way the service itself only needs read and write access, not schema changes.
+
+## A database per service
+
+**Decision.** Onboarding, Verification and Accounts each have their own database (`atlas_onboarding`,
+`atlas_verification`, `atlas_accounts`), on one SQL Server locally. No service reads another's database: data goes
+between them only as messages. Each database also holds its service's outbox and inbox tables, so a change and the
+message about it are saved in one transaction.
+
+**Why.** That's generally the way to do it with services: each owns its data and can change its schema, scale, or move
+without the others noticing. It also keeps everyone honest, because there is no shortcut join across services to lean
+on. In Azure it would be one database per service, which can still sit on one server or elastic pool to keep the cost
+down.
+
+**Honest note.** For a project this size you could get away with one database, the services separated by schemas
+(`onboarding.*`, `verification.*`, `accounts.*`): one connection string, one backup, less to run. The catch is that a
+join across schemas is always one line away, and once someone writes one the services aren't independent anymore.
+I prefer separate databases per service overall, and here it costs almost nothing, since it's still the one SQL Server
+container.
+
+The one shared thing is document storage: Onboarding writes the images to blob storage and Verification reads them by
+the reference in the message (the claim check). Onboarding owns that container; in production other services would
+only get read access to it.

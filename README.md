@@ -4,7 +4,8 @@ The backend for the mobile onboarding flow: the app sends `POST /applications`, 
 (document + selfie) and World-Check (sanctions/PEP) and answer in the same call. When it's approved we also open the
 current account in core banking in the background.
 
-It's a few small .NET 10 services behind a gateway, talking over RabbitMQ, each with its own SQL Server database.
+It's a few small .NET 10 services behind a gateway, talking over RabbitMQ, each with its own SQL Server database (a
+database per service, why that and not one shared database is in docs/decisions.md).
 The external providers (IDNow, World-Check, core banking) are stand-ins in `src/Stubs`, so everything runs locally.
 
 ## Run it
