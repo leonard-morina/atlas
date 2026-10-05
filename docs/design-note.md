@@ -23,7 +23,7 @@ application back (Idempotency-Key, and the database's unique indexes decide race
 
 | The material says | What I did instead | Why |
 |---|---|---|
-| A possible match "just gets rejected" (Teams), "no human review" (ticket, AC3) | `REFERRED`, waits for a compliance officer | Compliance §3: the review is required and can't be automated |
+| A possible match "just gets rejected" (Teams), "no human review" (ticket, AC3) | `REFERRED`, waits for a compliance officer | Compliance 3: the review is required and can't be automated |
 | Final answer in under 3 minutes (AC2), account + card when the call returns (AC6) | answer within seconds for most; account opened right after; no card | a referral takes up to 48 h, core banking takes 20–90 s and closes at night, there's no card system |
 | All six markets without a branch (AC1) | MD ends at `AWAITING_BRANCH_VISIT` | Annex B: MD needs a signature in person, the exemption is two years pending |
 | `nationalId`, one string | `identifier { type, value, issuingCountry }` + `nationality` | MF residents onboard with a passport; screening needs nationality, not residence |
@@ -53,7 +53,7 @@ Compliance first because it's the only thing that can change the architecture. T
 
 ## Structural decisions, and what reversing them would cost
 
-**1. Data residency: one deployment for all six markets.** Compliance §1 says personal data must not leave the
+**1. Data residency: one deployment for all six markets.** Compliance 1 says personal data must not leave the
 customer's country, Platform says one region, one SQL instance. Today only the images are separated per market (blob
 path starts with the market), the database rows, messages and logs aren't. If Compliance says "in-country", the fix is
 one deployment per market from the same codebase, or per-market storage everywhere. **Cost with production data:

@@ -5,11 +5,11 @@ involved on day one.
 
 ## Questions that could change the design
 
-1. **Data residency (Compliance §1).** Personal data "must not leave the customer's country of residence", but Platform
+1. **Data residency (Compliance 1).** Personal data "must not leave the customer's country of residence", but Platform
    runs one region and one SQL instance. Is the region enough, or does each market need its own storage? *Built:* one
    deployment, images stored under the market's name so they can be split. The answer can change the architecture, so
    it's first (design note).
-2. **The referral loop.** Compliance §3 requires a person to review a possible match, the ticket says no human review.
+2. **The referral loop.** Compliance 3 requires a person to review a possible match, the ticket says no human review.
    How does the officer's decision get back to us? *Built:* `REFERRED`, waiting (sketch in decisions.md).
 3. **The three minutes and the card (AC2, AC6).** They can't hold for referrals (up to 48 h), at night (core banking is
    closed 22:00–06:00) or in MD (branch visit), and there's no card system. Is "most customers in seconds, the rest told
