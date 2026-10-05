@@ -13,7 +13,7 @@ internal sealed class BlobDocumentStore(DocumentStorage storage) : IDocumentStor
         byte[] content,
         CancellationToken cancellationToken)
     {
-        // Market first: in production each market's documents live in storage in that market (Compliance §1),
+        // Market first: in production each market's documents live in storage in that market (Compliance 1),
         // so the first path segment is what decides where a document is kept.
         var stored = await storage.UploadAsync(
             $"{market}/{applicationId}/{type.ToString().ToLowerInvariant()}", content, cancellationToken);

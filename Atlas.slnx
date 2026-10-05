@@ -33,6 +33,8 @@
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="docs/decisions.md" />
+    <File Path="WHERE-TO-LOOK.md" />
+    <File Path="docs/qa-notes.md" />
     <File Path=".editorconfig" />
     <File Path="requests/atlas.http" />
     <File Path="global.json" />

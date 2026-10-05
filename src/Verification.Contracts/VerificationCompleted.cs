@@ -19,7 +19,7 @@ public enum VerificationOutcome
 {
     Approved,
     Rejected,
-    /// <summary>A possible sanctions or PEP match: a compliance officer must decide (Compliance §3).</summary>
+    /// <summary>A possible sanctions or PEP match: a compliance officer must decide (Compliance 3).</summary>
     Referred,
 }
 

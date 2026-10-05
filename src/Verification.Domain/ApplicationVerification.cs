@@ -5,7 +5,7 @@ namespace Atlas.Verification.Domain;
 
 /// <summary>
 /// The verification of one application: what both providers said and what was decided. Kept as evidence: rejected
-/// applications and their supporting material are retained for ten years (Compliance §4).
+/// applications and their supporting material are retained for ten years (Compliance 4).
 /// </summary>
 public sealed class ApplicationVerification
 {

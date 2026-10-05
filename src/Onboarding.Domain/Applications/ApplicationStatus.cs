@@ -10,7 +10,7 @@ public enum ApplicationStatus
 
     Rejected,
 
-    /// <summary>Possible sanctions or PEP match: a market compliance officer must decide (Compliance §3).</summary>
+    /// <summary>Possible sanctions or PEP match: a market compliance officer must decide (Compliance 3).</summary>
     Referred,
 
     /// <summary>

@@ -6,7 +6,7 @@ public sealed record VerificationDecision(Outcome Outcome, IReadOnlyList<Reason>
 {
     /// <summary>
     /// The decision table. A possible sanctions or PEP match is always referred, whatever identity verification
-    /// found: Compliance §3 forbids automating or bypassing that review, and rejecting on document grounds while
+    /// found: Compliance 3 forbids automating or bypassing that review, and rejecting on document grounds while
     /// a match is open would decide the case without the officer. Otherwise any identity failure rejects.
     /// All reasons are kept, so an officer sees document problems alongside the match.
     /// </summary>

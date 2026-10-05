@@ -47,7 +47,7 @@ public sealed class VerificationDecisionTests
         CollectionAssert.AreEqual(new[] { Reason.PossiblePepMatch }, decision.Reasons.ToArray());
     }
 
-    // Compliance §3: the review may not be bypassed, so a failed document does not turn a match into a rejection.
+    // Compliance 3: the review may not be bypassed, so a failed document does not turn a match into a rejection.
     [TestMethod]
     public void A_possible_match_is_referred_even_when_identity_verification_failed()
     {

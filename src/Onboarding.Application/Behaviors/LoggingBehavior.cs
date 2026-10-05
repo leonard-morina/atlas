@@ -7,7 +7,7 @@ namespace Atlas.Onboarding.Application.Behaviors;
 
 /// <summary>
 /// Logs every request by name and duration: commands at Information, queries at Debug (see <see cref="IQuery{TResponse}"/>).
-/// Never the payload: requests carry personal data (Compliance §2). Failures are logged once, by the exception handler.
+/// Never the payload: requests carry personal data (Compliance 2). Failures are logged once, by the exception handler.
 /// </summary>
 public sealed class LoggingBehavior<TRequest, TResponse>(ILogger<LoggingBehavior<TRequest, TResponse>> logger)
     : IPipelineBehavior<TRequest, TResponse>
