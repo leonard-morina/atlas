@@ -1,5 +1,7 @@
 # Atlas onboarding
 
+[![Tests](https://github.com/leonard-morina/atlas/actions/workflows/tests.yml/badge.svg)](https://github.com/leonard-morina/atlas/actions/workflows/tests.yml)
+
 The backend for the mobile onboarding flow: the app sends `POST /applications`, we check the person with IDNow
 (document + selfie) and World-Check (sanctions/PEP) and answer in the same call. When it's approved we also open the
 current account in core banking in the background.
@@ -56,6 +58,9 @@ stays after a run so you can look at it. A few switches:
 
 - `ATLAS_TEST_RESET=true` drops the test databases first, the migrations build them again from empty
 - `ATLAS_TEST_INSTANCE=dev` runs them against the normal dev setup instead (stop the dev stack first then)
+
+GitHub Actions runs the same thing on every push to `main` (`.github/workflows/tests.yml`): `docker compose up`, then
+`dotnet test`, on a clean Linux machine.
 
 What they cover: the three required cases (slow provider, possible match, submitted twice, including the same
 request five times at once), a core banking timeout that must end with exactly one account, and a worker stopped in

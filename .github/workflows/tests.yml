@@ -1,0 +1,34 @@
+# Runs every test the way a reviewer would: the infrastructure from docker compose, then `dotnet test`. The integration
+# tests start the whole system (Aspire's test host) against the real SQL Server and RabbitMQ in those containers.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The SDK version comes from global.json, as locally.
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # Ports and passwords come from the committed .env. --wait returns once the containers with a health check
+      # (SQL Server, RabbitMQ, Redis) report healthy.
+      - name: Start the infrastructure
+        run: docker compose up -d --wait
+
+      - name: Test
+        run: dotnet test
+
+      - name: Show the containers' logs
+        if: failure()
+        run: docker compose logs --tail=100
