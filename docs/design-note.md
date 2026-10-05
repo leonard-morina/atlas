@@ -37,10 +37,10 @@ need a decision first (below).
 
 ## The order I'd do the rest in
 
-1. **Get Compliance's answers on data residency and access** (§1, §2). They decide how and where this gets deployed,
+1. **Get Compliance's answers on data residency and access** (Compliance 1, 2). They decide how and where this gets deployed,
    and both are expensive to change once there's real data (see below). Nothing goes live before that.
 2. **Authentication and access logging.** Customers authenticated (the API is anonymous now), every service with its
-   own identity, every read of personal data logged (§2). Also makes the rate limit per customer instead of per IP.
+   own identity, every read of personal data logged (Compliance 2). Also makes the rate limit per customer instead of per IP.
 3. **The referral loop.** How the officer's decision comes back (from World-Check's case tool, ideally) and moves the
    application on. Without it referrals never finish.
 4. **Operations' side of account opening.** Escalations are published but nobody reads them yet.

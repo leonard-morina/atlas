@@ -14,7 +14,7 @@ involved on day one.
 3. **The three minutes and the card (AC2, AC6).** They can't hold for referrals (up to 48 h), at night (core banking is
    closed 22:00–06:00) or in MD (branch visit), and there's no card system. Is "most customers in seconds, the rest told
    what's happening" OK for the board demo?
-4. **Access logging and retention (§2, §4, §5).** Which accesses must be logged and where? And for a rejected applicant
+4. **Access logging and retention (Compliance 2, 4, 5).** Which accesses must be logged and where? And for a rejected applicant
    who asks to be deleted, does the ten-year retention win over erasure?
 
 ## Assumptions I made, please confirm
