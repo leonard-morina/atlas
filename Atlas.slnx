@@ -35,6 +35,11 @@
     <File Path="docs/decisions.md" />
     <File Path="WHERE-TO-LOOK.md" />
     <File Path="docs/qa-notes.md" />
+    <File Path="docs/design-note.md" />
+    <File Path="docs/api-contract.md" />
+    <File Path="docs/openapi-v1.json" />
+    <File Path="docs/open-questions.md" />
+    <File Path="docs/known-limitations.md" />
     <File Path=".editorconfig" />
     <File Path="requests/atlas.http" />
     <File Path="global.json" />

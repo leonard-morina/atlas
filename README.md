@@ -101,7 +101,9 @@ flowchart LR
 Each service is split in Domain / Application / Infrastructure / host, the business rules are in Domain and have
 unit tests.
 
-Why things are the way they are is in [docs/decisions.md](docs/decisions.md).
+Why things are the way they are is in [docs/decisions.md](docs/decisions.md). The rest of the documents: the
+[design note](docs/design-note.md), [QA notes](docs/qa-notes.md), the [API contract and note to mobile](docs/api-contract.md),
+[open questions](docs/open-questions.md) and [known limitations](docs/known-limitations.md).
 
 ## What I built and what I left out
 

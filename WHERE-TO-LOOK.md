@@ -9,8 +9,12 @@
 3. **The integration tests**: `tests/Atlas.IntegrationTests`, start with `SubmittedTwiceTests.cs` (same request five
    times at once, one application) and `CoreBankingTimeoutTests.cs` (a timeout that still ends in exactly one account).
    They run the real system against the real SQL Server and RabbitMQ.
-4. **[docs/qa-notes.md](docs/qa-notes.md)** and **[docs/decisions.md](docs/decisions.md)**: the scenarios, and why
-   things are the way they are.
+4. **[docs/open-questions.md](docs/open-questions.md)**: the requirements contradict each other in places
+   (Compliance vs the ticket, the 3 minutes, data residency), this is what I'd ask and what I picked meanwhile.
+
+**The documents**: [design note](docs/design-note.md) · [QA notes](docs/qa-notes.md) ·
+[API contract + note to mobile](docs/api-contract.md) ([OpenAPI](docs/openapi-v1.json)) ·
+[decisions, my reasoning](docs/decisions.md) · [known limitations](docs/known-limitations.md)
 
 **The decision I most want to be asked about**
 
