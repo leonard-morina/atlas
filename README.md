@@ -124,6 +124,21 @@ Left out, on purpose:
   deployment I'd use a migrator project per database, an EF bundle, or reviewed SQL scripts, why is in
   docs/decisions.md.
 
+## Shortcuts (macOS/Linux)
+
+There's a `Makefile` for the things I do all the time. I didn't use them during the development of the project, but extending migrations, killing db volumes, I would preferably use `make` commands such as :
+
+```
+make run                                         # infrastructure + everything
+make test                                        # all tests
+make migration SERVICE=onboarding NAME=AddX      # new EF migration for one service (onboarding|verification|accounts)
+make migration-remove SERVICE=onboarding         # take the last one back, if it's not applied yet
+make reset                                       # delete all local data (the containers' volumes), asks first
+```
+
+Each target is just one plain command, so on Windows (no `make` by default) you can run that command directly, the
+Makefile shows it.
+
 ## Handy switches
 
 - `dotnet run --project src/AppHost -- --Atlas:Replicas=3` runs 3 copies of the API and the workers, to see them
